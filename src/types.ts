@@ -1,4 +1,4 @@
-export type Phase = 'SETUP' | 'PLAYING' | 'MODAL' | 'GAME_OVER';
+export type Status = 'SETUP' | 'PLAYING' | 'MODAL' | 'GAME_OVER'; // 游戏状态
 export type CityTier = 'TIER1' | 'PROVINCIAL' | 'REMOTE';
 
 export interface StudentStats {
@@ -22,7 +22,7 @@ export interface Student {
 }
 
 export interface GameState {
-  phase: Phase;
+  status: Status;
   agencyName: string;
   bossName: string;
   city: CityTier;
@@ -55,6 +55,14 @@ export interface GameState {
   
   gameOverReason?: string;
   finalScore?: number;
+  
+  notifications: Notification[];
+}
+
+export interface Notification {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info' | 'warning';
 }
 
 export interface LogEntry {

@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import Modal from './components/EventModal';
+import NotificationContainer from './components/NotificationContainer';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -24,12 +25,13 @@ const App: React.FC = () => {
     upgradeCoach,
     upgradeFacility,
     dismissStudent,
-    renameStudent
+    renameStudent,
+    removeNotification
   } = useGameLogic();
 
   const [showRecruitModal, setShowRecruitModal] = useState(false);
 
-  if (gameState.phase === 'SETUP') {
+  if (gameState.status === 'SETUP') {
     return (
       <SetupScreen 
         setupForm={setupForm} 
@@ -39,7 +41,7 @@ const App: React.FC = () => {
     );
   }
 
-  if (gameState.phase === 'GAME_OVER') {
+  if (gameState.status === 'GAME_OVER') {
     return (
       <GameOverScreen 
         gameState={gameState} 
@@ -51,6 +53,8 @@ const App: React.FC = () => {
   return (
     <div className="h-screen bg-slate-100 overflow-hidden flex flex-col font-sans text-slate-800">
       <Header gameState={gameState} />
+
+      <NotificationContainer notifications={gameState.notifications || []} onRemove={removeNotification} />
 
       {/* Main Grid Layout */}
       <div className="flex-1 p-3 grid grid-cols-12 gap-3 overflow-hidden">
@@ -82,7 +86,7 @@ const App: React.FC = () => {
         />
       )}
 
-      {gameState.phase === 'MODAL' && gameState.modalContent && (
+      {gameState.status === 'MODAL' && gameState.modalContent && (
         <Modal 
           config={gameState.modalContent} 
           onOptionSelect={(index) => {
@@ -90,7 +94,7 @@ const App: React.FC = () => {
               gameState.modalContent.options[index].action();
             }
           }} 
-          onClose={() => setGameState(prev => ({ ...prev, phase: 'PLAYING', modalContent: null }))}
+          onClose={() => setGameState(prev => ({ ...prev, status: 'PLAYING', modalContent: null }))}
         />
       )}
     </div>

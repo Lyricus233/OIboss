@@ -74,7 +74,7 @@ export const calculateTuition = (student: Student) => {
 
 export const useGameLogic = () => {
   const [gameState, setGameState] = useState<GameState>({
-    phase: 'SETUP',
+    status: 'SETUP',
     bossName: '',
     agencyName: '',
     city: 'PROVINCIAL',
@@ -102,11 +102,12 @@ export const useGameLogic = () => {
     history: [],
     statsHistory: [],
     modalContent: null,
+    notifications: [],
   });
 
   const [setupForm, setSetupForm] = useState({
-    bossName: '王老师',
-    agencyName: '萌猫机构',
+    bossName: '飓风王金',
+    agencyName: '萌猫信奥',
     city: 'PROVINCIAL' as CityTier,
     difficulty: 'normal' as 'easy' | 'normal' | 'hard',
   });
@@ -139,11 +140,26 @@ export const useGameLogic = () => {
     });
   };
 
+  const addNotification = (state: GameState, message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    state.notifications = [...state.notifications, {
+      id: Math.random().toString(),
+      message,
+      type
+    }];
+  };
+
+  const removeNotification = (id: string) => {
+    setGameState(prev => ({
+      ...prev,
+      notifications: prev.notifications.filter(t => t.id !== id)
+    }));
+  };
+
   const startGame = () => {
     let cash = 0;
     let fixedCost = 0;
     let reputation = 0;
-    let studentsCount = 20;
+    let studentsCount = 5;
 
     if (setupForm.city === 'TIER1') {
       cash = 250000;
@@ -179,7 +195,7 @@ export const useGameLogic = () => {
     
     setGameState({
       ...gameState,
-      phase: 'PLAYING',
+      status: 'PLAYING',
       bossName: setupForm.bossName,
       agencyName: setupForm.agencyName,
       city: setupForm.city,
@@ -234,11 +250,17 @@ export const useGameLogic = () => {
   };
 
   const handleActionClick = (actionId: string) => {
-    if (gameState.phase !== 'PLAYING' || gameState.actedThisWeek) return;
+    if (gameState.status !== 'PLAYING' || gameState.actedThisWeek) return;
 
     const s = { ...gameState };
     const act = AGENCY_ACTIONS.find((a) => a.id === actionId);
     if (!act) return;
+
+    if (act.cost < 0 && s.cash + act.cost < 0) {
+      addNotification(s, "资金不足！", 'error');
+      setGameState(s);
+      return;
+    }
 
     s.cash += act.cost;
 
@@ -304,13 +326,21 @@ export const useGameLogic = () => {
       const gained = Math.round(
         Math.random() * (s.potentialStudents / 2) + s.potentialStudents / 3
       );
-      const realGained = Math.max(0, gained);
+      
+      const availableSpace = Math.max(0, s.maxStudents - s.students.length);
+      const realGained = Math.min(gained, availableSpace);
+
       if (realGained > 0) {
         for(let i=0; i<realGained; i++) {
            s.students.push(generateStudent(`auto-${s.totalWeeks}-${i}`, 'BEGINNER'));
         }
         addLog(s, `由于前期运营，本周新增 ${realGained} 名在读学生。`, "success");
       }
+
+      if (gained > realGained) {
+        addLog(s, `场地已满，${gained - realGained} 名慕名而来的学生因无法报名而离开。`, "warning");
+      }
+
       s.potentialStudents = Math.max(0, s.potentialStudents - gained);
     }
 
@@ -367,10 +397,10 @@ export const useGameLogic = () => {
   };
 
   const checkGameOver = (s: GameState) => {
-    if (s.phase === 'GAME_OVER') return true;
+    if (s.status === 'GAME_OVER') return true;
 
     if (s.cash < 0) {
-      s.phase = 'GAME_OVER';
+      s.status = 'GAME_OVER';
       s.gameOverReason = "资金链断裂";
       s.modalContent = {
         type: 'ALERT',
@@ -381,7 +411,7 @@ export const useGameLogic = () => {
     }
 
     if (s.bossStress >= 100) {
-      s.phase = 'GAME_OVER';
+      s.status = 'GAME_OVER';
       s.gameOverReason = "老板 AFO";
       s.modalContent = {
         type: 'ALERT',
@@ -392,7 +422,7 @@ export const useGameLogic = () => {
     }
 
     if (s.coachMorale <= 0) {
-      s.phase = 'GAME_OVER';
+      s.status = 'GAME_OVER';
       s.gameOverReason = "团队解散";
       s.modalContent = {
         type: 'ALERT',
@@ -403,7 +433,7 @@ export const useGameLogic = () => {
     }
 
     if (s.studentSatisfaction <= 0) {
-      s.phase = 'GAME_OVER';
+      s.status = 'GAME_OVER';
       s.gameOverReason = "口碑崩盘";
       s.modalContent = {
         type: 'ALERT',
@@ -414,7 +444,7 @@ export const useGameLogic = () => {
     }
     
     if (s.year > 3) {
-        s.phase = 'GAME_OVER';
+        s.status = 'GAME_OVER';
         s.gameOverReason = "游戏通关";
         s.modalContent = {
             type: 'RESULT',
@@ -428,7 +458,7 @@ export const useGameLogic = () => {
   };
 
   const endWeek = () => {
-    if (gameState.phase !== 'PLAYING') return;
+    if (gameState.status !== 'PLAYING') return;
     const s = { ...gameState };
 
     simulateWeekEconomy(s);
@@ -466,7 +496,14 @@ export const useGameLogic = () => {
     const cost = COACH_UPGRADE_COSTS[s.coachLevel];
     
     if (!cost) {
-      alert("已达到最高等级！");
+      addNotification(s, "已达到最高等级！", 'warning');
+      setGameState(s);
+      return;
+    }
+
+    if (s.cash < cost) {
+      addNotification(s, "资金不足！", 'error');
+      setGameState(s);
       return;
     }
 
@@ -489,7 +526,14 @@ export const useGameLogic = () => {
     const config = FACILITY_CONFIG[nextLevel];
 
     if (!config) {
-      alert("已达到最高场地等级！");
+      addNotification(s, "已达到最高场地等级！", 'warning');
+      setGameState(s);
+      return;
+    }
+
+    if (s.cash < config.cost) {
+      addNotification(s, "资金不足！", 'error');
+      setGameState(s);
       return;
     }
 
@@ -513,7 +557,14 @@ export const useGameLogic = () => {
     let s = { ...gameState };
     
     if (s.students.length + students.length > s.maxStudents) {
-      alert("场地容量不足，请先升级场地！");
+      addNotification(s, "场地容量不足，请先升级场地！", 'error');
+      setGameState(s);
+      return;
+    }
+    
+    if (s.cash < cost) {
+      addNotification(s, "资金不足！", 'error');
+      setGameState(s);
       return;
     }
     
@@ -538,7 +589,7 @@ export const useGameLogic = () => {
 
     setGameState(prev => ({
       ...prev,
-      phase: 'MODAL',
+      status: 'MODAL',
       modalContent: {
         type: 'CONFIRM',
         title: '劝退确认',
@@ -551,7 +602,7 @@ export const useGameLogic = () => {
               setGameState(current => {
                  let s = { ...current };
                  if (!s.students.find(st => st.id === studentId)) {
-                     return { ...s, phase: 'PLAYING', modalContent: null };
+                     return { ...s, status: 'PLAYING', modalContent: null };
                  }
                  
                  s.students = s.students.filter(st => st.id !== studentId);
@@ -559,7 +610,7 @@ export const useGameLogic = () => {
                  s.bossStress = Math.max(0, s.bossStress - 10);
                  
                  addLog(s, `你劝退了 ${student.name}。满意度 -10，压力 -5。`, 'warning');
-                 s.phase = 'PLAYING';
+                 s.status = 'PLAYING';
                  s.modalContent = null;
                  checkGameOver(s);
                  return s;
@@ -569,7 +620,7 @@ export const useGameLogic = () => {
           {
             label: '再想想',
             action: () => {
-              setGameState(prev => ({ ...prev, phase: 'PLAYING', modalContent: null }));
+              setGameState(prev => ({ ...prev, status: 'PLAYING', modalContent: null }));
             }
           }
         ]
@@ -599,6 +650,7 @@ export const useGameLogic = () => {
     upgradeCoach,
     upgradeFacility,
     dismissStudent,
-    renameStudent
+    renameStudent,
+    removeNotification
   };
 };
