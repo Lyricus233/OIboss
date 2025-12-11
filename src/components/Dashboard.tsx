@@ -1,5 +1,5 @@
 import React from 'react';
-import { PlayCircle, UserPlus, TrendingUp, AlertTriangle, ArrowRight, Building } from 'lucide-react';
+import { PlayCircle, UserPlus, TrendingUp, ArrowRight, Building } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, Tooltip } from 'recharts';
 import { GameState } from '../types';
 import { AGENCY_ACTIONS, COACH_UPGRADE_COSTS, FACILITY_CONFIG } from '../constants';
@@ -8,7 +8,6 @@ interface DashboardProps {
   gameState: GameState;
   handleActionClick: (actionId: string) => void;
   endWeek: () => void;
-  onEventOptionClick: (eventId: string, optionId: string) => void;
   onOpenRecruit: () => void;
   upgradeCoach: () => void;
   upgradeFacility: () => void;
@@ -18,7 +17,6 @@ const Dashboard: React.FC<DashboardProps> = ({
   gameState, 
   handleActionClick,
   endWeek,
-  onEventOptionClick,
   onOpenRecruit,
   upgradeCoach,
   upgradeFacility
