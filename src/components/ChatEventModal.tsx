@@ -15,6 +15,7 @@ const ChatEventModal: React.FC<ChatEventModalProps> = ({ scenario, eventDescript
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [completionResult, setCompletionResult] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,7 +50,7 @@ const ChatEventModal: React.FC<ChatEventModalProps> = ({ scenario, eventDescript
           setMessages(prev => [...prev, { role: 'assistant', content: parsed.reply }]);
         }
         if (parsed.is_finished && parsed.result) {
-          setTimeout(() => onComplete(parsed.result), 2000);
+          setCompletionResult(parsed.result);
         }
       } catch (e) {
         console.error("JSON Parse Error", e);
@@ -116,51 +117,64 @@ const ChatEventModal: React.FC<ChatEventModalProps> = ({ scenario, eventDescript
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-white border-t border-slate-200 shrink-0">
+        <div className="p-4 bg-white border-t border-slate-200 shrink-0 space-y-3">
           <div className="flex gap-2">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSend()}
-              placeholder={remainingTurns > 0 ? "输入你的回复..." : "对话次数已用尽"}
-              disabled={isLoading || remainingTurns <= 0}
+              onKeyDown={(e) => e.key === 'Enter' && !isLoading && !completionResult && handleSend()}
+              placeholder={completionResult ? "对话已结束" : (remainingTurns > 0 ? "输入你的回复..." : "对话次数已用尽")}
+              disabled={isLoading || remainingTurns <= 0 || !!completionResult}
               className="flex-1 px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
             />
             <button
               onClick={handleSend}
-              disabled={isLoading || !input.trim() || remainingTurns <= 0}
+              disabled={isLoading || !input.trim() || remainingTurns <= 0 || !!completionResult}
               className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? <Loader2 className="animate-spin" /> : <Send />}
             </button>
           </div>
-          
-          <div className="mt-3 flex justify-between items-center">
-            <div className="flex flex-col">
-              <span className="text-xs text-slate-400">
-                {messages.length > 2 ? "对话进行中..." : "请开始你的表演"}
-              </span>
-              <span className={`text-xs font-bold mt-0.5 ${remainingTurns < 3 ? 'text-red-500' : 'text-slate-400'}`}>
-                剩余回合: {remainingTurns}
-              </span>
-            </div>
-            <div className="flex gap-2">
-               <button 
-                onClick={onClose}
-                className="px-4 py-2 text-slate-500 hover:text-slate-700 text-sm font-bold"
+
+          {completionResult ? (
+            <div className="flex flex-col items-center gap-3 w-full p-4 bg-green-50 rounded-xl border border-green-100 animate-in fade-in slide-in-from-bottom-4">
+              <p className="text-green-800 font-bold text-lg">家长决定结束对话</p>
+              <p className="text-green-600 text-sm">对方似乎已经有了决定，点击下方按钮查看结果。</p>
+              <button
+                onClick={() => onComplete(completionResult)}
+                className="mt-2 px-8 py-3 bg-green-600 text-white rounded-xl text-base font-bold hover:bg-green-700 shadow-lg shadow-green-200 transition-all hover:scale-105 active:scale-95"
               >
-                放弃离开
-              </button>
-              <button 
-                onClick={handleFinish}
-                disabled={messages.length < 4 || isLoading}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 disabled:opacity-50 shadow-lg shadow-green-200"
-              >
-                结束对话并结算
+                查看谈判结果
               </button>
             </div>
-          </div>
+          ) : (
+            <div className="flex justify-between items-center">
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-400">
+                  {messages.length > 2 ? "对话进行中..." : "请开始你的表演"}
+                </span>
+                <span className={`text-xs font-bold mt-0.5 ${remainingTurns < 3 ? 'text-red-500' : 'text-slate-400'}`}>
+                  剩余回合: {remainingTurns}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={onClose}
+                  className="px-4 py-2 text-slate-500 hover:text-slate-700 text-sm font-bold"
+                >
+                  放弃离开
+                </button>
+                <button 
+                  onClick={handleFinish}
+                  disabled={messages.length < 4 || isLoading}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 disabled:opacity-50 shadow-lg shadow-green-200"
+                >
+                  结束对话并结算
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

@@ -292,6 +292,13 @@ export const useGameLogic = () => {
     const available = (RANDOM_EVENTS as any[]).filter((ev) => {
       if (s.totalWeeks < ev.minWeek) return false;
       if (ev.unique && s.doneEvents?.includes(ev.id)) return false;
+      
+      // 最多触发 2 次
+      if (ev.id === 'parent_chat') {
+        const count = s.doneEvents?.filter(id => id === 'parent_chat').length || 0;
+        if (count >= 2) return false;
+      }
+
       return true;
     });
 
@@ -305,7 +312,7 @@ export const useGameLogic = () => {
       eventInstance.activeChat = scenario;
     }
 
-    if (event.unique) {
+    if (event.unique || event.id === 'parent_chat') {
       s.doneEvents = [...(s.doneEvents || []), event.id];
     }
 
