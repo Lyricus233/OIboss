@@ -103,6 +103,7 @@ export const useGameLogic = () => {
     statsHistory: [],
     modalContent: null,
     notifications: [],
+    doneEvents: []
   });
 
   const [setupForm, setSetupForm] = useState({
@@ -212,10 +213,11 @@ export const useGameLogic = () => {
       facilityLevel: 1,
       actedThisWeek: false,
       currentEvent: null,
+      doneEvents: [],
       statsHistory: [{ week: 1, cash, reputation }],
       history: [{
         id: 'init', week: 1, type: 'success',
-        message: `您好 ${setupForm.bossName}，${setupForm.agencyName} 正式开业！`
+        message: `您好 ${setupForm.bossName}，${setupForm.agencyName} 正式开业！有五名学生慕名而来！`
       }]
     });
   };
@@ -278,25 +280,75 @@ export const useGameLogic = () => {
     else prefix = "你拍板决定，";
 
     addLog(s, prefix + act.name + "。", act.id === "squeeze" ? "warning" : "success");
-    checkGameOver(s);
+    
+    // 自动结束本周
     setGameState(s);
+    setTimeout(() => endWeek(), 0);
   };
 
   const handleRandomEvent = (s: GameState) => {
     if (Math.random() > 0.35) return;
 
-    const available = RANDOM_EVENTS.filter((ev) => s.totalWeeks >= ev.minWeek);
+    const available = (RANDOM_EVENTS as any[]).filter((ev) => {
+      if (s.totalWeeks < ev.minWeek) return false;
+      if (ev.unique && s.doneEvents?.includes(ev.id)) return false;
+      return true;
+    });
+
     if (!available.length) return;
 
     const event = available[Math.floor(Math.random() * available.length)];
-    s.currentEvent = event;
+    const eventInstance = { ...event };
+
+    if (event.type === 'CHAT' && event.chats && event.chats.length > 0) {
+      const scenario = event.chats[Math.floor(Math.random() * event.chats.length)];
+      eventInstance.activeChat = scenario;
+    }
+
+    if (event.unique) {
+      s.doneEvents = [...(s.doneEvents || []), event.id];
+    }
+
+    s.currentEvent = eventInstance;
+  };
+
+  const handleChatEventComplete = (result: any) => {
+    const s = { ...gameState };
+    s.currentEvent = null;
+
+    let effectText = "";
+    if (result.reward) {
+      const parts = [];
+      if (result.reward.money) parts.push(`资金${result.reward.money > 0 ? '+' : ''}${result.reward.money}`);
+      if (result.reward.reputation) parts.push(`声望${result.reward.reputation > 0 ? '+' : ''}${result.reward.reputation}`);
+      if (result.reward.studentSatisfaction) parts.push(`满意度${result.reward.studentSatisfaction > 0 ? '+' : ''}${result.reward.studentSatisfaction}`);
+      if (result.reward.bossStress) parts.push(`压力${result.reward.bossStress > 0 ? '+' : ''}${result.reward.bossStress}`);
+      if (result.reward.coachMorale) parts.push(`士气${result.reward.coachMorale > 0 ? '+' : ''}${result.reward.coachMorale}`);
+      
+      if (parts.length > 0) {
+        effectText = ` (${parts.join('，')})`;
+      }
+    }
+
+    if (result.success) {
+      addLog(s, `谈判成功：${result.message}${effectText}`, 'success');
+    } else {
+      addLog(s, `谈判失败：${result.message}${effectText}`, 'danger');
+    }
+
+    if (result.reward) {
+      applyEffects(s, result.reward);
+    }
+    
+    checkGameOver(s);
+    setGameState(s);
   };
 
   const onEventOptionClick = (eventId: string, optionId: string) => {
     const s = { ...gameState };
-    const event = RANDOM_EVENTS.find((ev) => ev.id === eventId);
-    if (!event) return;
-    const opt = event.options.find((o) => o.id === optionId);
+    const event = (RANDOM_EVENTS as any[]).find((ev) => ev.id === eventId);
+    if (!event || !event.options) return;
+    const opt = event.options.find((o: any) => o.id === optionId);
     if (!opt) return;
 
     applyEffects(s, opt.effects);
@@ -651,6 +703,7 @@ export const useGameLogic = () => {
     upgradeFacility,
     dismissStudent,
     renameStudent,
-    removeNotification
+    removeNotification,
+    handleChatEventComplete
   };
 };

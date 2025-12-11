@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { Github } from 'lucide-react';
 import Modal from './components/EventModal';
+import ChatEventModal from './components/ChatEventModal';
 import NotificationContainer from './components/NotificationContainer';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -27,7 +27,8 @@ const App: React.FC = () => {
     upgradeFacility,
     dismissStudent,
     renameStudent,
-    removeNotification
+    removeNotification,
+    handleChatEventComplete
   } = useGameLogic();
 
   const [showRecruitModal, setShowRecruitModal] = useState(false);
@@ -111,6 +112,38 @@ const App: React.FC = () => {
             }} 
             onClose={() => setGameState(prev => ({ ...prev, status: 'PLAYING', modalContent: null }))}
           />
+        )}
+
+        {gameState.currentEvent && (
+          gameState.currentEvent.type === 'CHAT' && gameState.currentEvent.activeChat ? (
+            <ChatEventModal
+              scenario={gameState.currentEvent.activeChat}
+              eventDescription={gameState.currentEvent.text}
+              onClose={() => handleChatEventComplete({ success: false, message: "你放弃了沟通", reward: { reputation: -2 } })}
+              onComplete={handleChatEventComplete}
+              onError={(msg) => setGameState(prev => ({
+                ...prev,
+                notifications: [...prev.notifications, { id: Date.now().toString(), message: msg, type: 'error' }]
+              }))}
+            />
+          ) : (
+            <Modal 
+              config={{
+                type: 'EVENT',
+                title: gameState.currentEvent.title,
+                description: gameState.currentEvent.text,
+                options: gameState.currentEvent.options?.map(opt => ({
+                  label: opt.label,
+                  action: () => onEventOptionClick(gameState.currentEvent!.id, opt.id)
+                }))
+              }}
+              onOptionSelect={(index) => {
+                if (gameState.currentEvent?.options?.[index]) {
+                  onEventOptionClick(gameState.currentEvent.id, gameState.currentEvent.options[index].id);
+                }
+              }}
+            />
+          )
         )}
       </>
     );

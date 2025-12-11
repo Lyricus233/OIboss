@@ -131,7 +131,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <h3 className="font-bold text-amber-900 mb-1">{gameState.currentEvent.title}</h3>
               <p className="text-sm text-amber-800 mb-3">{gameState.currentEvent.text}</p>
               <div className="flex flex-wrap gap-2">
-                {gameState.currentEvent.options.map(opt => (
+                {gameState.currentEvent.options?.map(opt => (
                   <button
                     key={opt.id}
                     onClick={() => onEventOptionClick(gameState.currentEvent!.id, opt.id)}
@@ -154,9 +154,9 @@ const Dashboard: React.FC<DashboardProps> = ({
             </h3>
             <button 
               onClick={endWeek}
-              className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 text-white rounded-full text-sm font-medium hover:bg-slate-700 transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 bg-slate-200 text-slate-600 rounded-full text-sm font-medium hover:bg-slate-300 transition-colors"
             >
-              结束本周 <ArrowRight size={14} />
+              跳过本周 <ArrowRight size={14} />
             </button>
          </div>
          

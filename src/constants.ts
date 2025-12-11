@@ -42,7 +42,7 @@ export const FACILITY_CONFIG: Record<number, { label: string; maxStudents: numbe
   1: { label: '小型工作室', maxStudents: 20, rent: 0, cost: 0 },
   2: { label: '标准培训教室', maxStudents: 50, rent: 5000, cost: 50000 },
   3: { label: '专业写字楼', maxStudents: 100, rent: 15000, cost: 200000 },
-  4: { label: '独栋教学楼', maxStudents: 200, rent: 40000, cost: 1000000 },
+  4: { label: '独栋教学楼', maxStudents: 150, rent: 40000, cost: 1000000 },
 };
 
 export const RECRUITMENT_CONFIG = {
@@ -237,4 +237,26 @@ export const RANDOM_EVENTS = [
       },
     ],
   },
+  {
+    id: "parent_chat",
+    title: "家长来访",
+    text: "一位家长走进了你的办公室，看起来有些话想说...",
+    minWeek: 3,
+    type: 'CHAT',
+    unique: false,
+    chats: [
+      {
+        id: "tuition_bargain",
+        title: "学费谈判",
+        openingMessage: "老师，咱们这个学费是不是有点太贵了？隔壁那家才收一半...",
+        systemPrompt: "你是一位精打细算的家长，觉得孩子的OI培训班学费太贵（目前是市场价的1.5倍）。你试图通过对比其他机构、哭穷、或者质疑教学质量来要求打折。你的目标是拿到8折优惠。如果玩家坚持价值（师资、成绩、服务）并且态度诚恳，你可以接受原价或者送一些赠品（如教材、加课）。如果玩家态度强硬或傲慢，你会生气并威胁退费。请扮演这个角色与玩家对话。每次回复简短一些（50字以内）。当对话结束时（达成一致或谈崩），请在最后一行输出JSON格式的结果：{\"success\": boolean, \"message\": \"结局描述\", \"reward\": {\"money\": number, \"reputation\": number}}。如果谈崩了，money为负数表示退费，reputation下降。如果成功，money为0（维持原价）或负数（打折损失），reputation上升。"
+      },
+      {
+        id: "student_stress",
+        title: "压力投诉",
+        openingMessage: "老师，我家孩子最近回家老是哭，说压力太大了，是不是你们逼得太紧了？",
+        systemPrompt: "你是一位溺爱孩子的家长，发现孩子最近压力很大（OI训练太苦）。你觉得是机构安排不合理，要求减少作业或者退费。如果玩家能解释清楚竞赛的残酷性并提供心理辅导方案，你会理解。如果玩家只是说“吃得苦中苦”，你会觉得机构冷血。请扮演这个角色。每次回复简短。对话结束时输出JSON结果：{\"success\": boolean, \"message\": \"结局描述\", \"reward\": {\"reputation\": number, \"studentSatisfaction\": number}}。"
+      }
+    ]
+  }
 ];

@@ -57,6 +57,7 @@ export interface GameState {
   finalScore?: number;
   
   notifications: Notification[];
+  doneEvents: string[]; 
 }
 
 export interface Notification {
@@ -98,12 +99,23 @@ export interface EventOption {
   log: string;
 }
 
+export interface ChatScenario {
+  id: string;
+  title: string;
+  openingMessage: string;
+  systemPrompt: string;
+}
+
 export interface RandomEvent {
   id: string;
   title: string;
   text: string;
   minWeek: number;
-  options: EventOption[];
+  type?: 'STANDARD' | 'CHAT'; 
+  unique?: boolean;
+  options?: EventOption[]; // for STANDARD type
+  chats?: ChatScenario[]; // for CHAT type
+  activeChat?: ChatScenario;
 }
 
 export interface AgencyAction {
