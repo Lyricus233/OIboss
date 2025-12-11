@@ -43,10 +43,11 @@ const ChatEventModal: React.FC<ChatEventModalProps> = ({ scenario, eventDescript
 
     try {
       const reply = await Deepseek(newHistory);
+      console.log("AI Reply:", reply);
       
       try {
         const parsed = JSON.parse(reply);
-        if (parsed.reply) {
+        if (parsed.reply && typeof parsed.reply === 'string' && parsed.reply.trim()) {
           setMessages(prev => [...prev, { role: 'assistant', content: parsed.reply }]);
         }
         if (parsed.is_finished && parsed.result) {
@@ -54,7 +55,9 @@ const ChatEventModal: React.FC<ChatEventModalProps> = ({ scenario, eventDescript
         }
       } catch (e) {
         console.error("JSON Parse Error", e);
-        setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+        if (reply && typeof reply === 'string' && reply.trim()) {
+          setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+        }
       }
     } catch (error) {
       setMessages(prev => [...prev, { role: 'system', content: 'Error: 无法连接到 AI 服务，请检查网络或后端服务。' }]);

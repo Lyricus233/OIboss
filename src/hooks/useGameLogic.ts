@@ -293,10 +293,11 @@ export const useGameLogic = () => {
       if (s.totalWeeks < ev.minWeek) return false;
       if (ev.unique && s.doneEvents?.includes(ev.id)) return false;
       
-      // 最多触发 2 次
+      // 最多触发 3 次
       if (ev.id === 'parent_chat') {
         const count = s.doneEvents?.filter(id => id === 'parent_chat').length || 0;
-        if (count >= 2) return false;
+        if (count >= 3) return false;
+        if (Math.random() > 0.2) return false;
       }
 
       return true;
