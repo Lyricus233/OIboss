@@ -43,28 +43,16 @@ const ChatEventModal: React.FC<ChatEventModalProps> = ({ scenario, eventDescript
     try {
       const reply = await Deepseek(newHistory);
       
-      const lastOpenBraceIndex = reply.lastIndexOf('{');
-      let jsonResult = null;
-      let textContent = reply;
-
-      if (lastOpenBraceIndex !== -1) {
-        const potentialJson = reply.substring(lastOpenBraceIndex);
-        const cleanJson = potentialJson.replace(/```json/g, '').replace(/```/g, '').trim();
-        try {
-          const parsed = JSON.parse(cleanJson);
-          if (parsed.success !== undefined && parsed.reward) {
-            jsonResult = parsed;
-            textContent = reply.substring(0, lastOpenBraceIndex).trim();
-          }
-        } catch (e) { }
-      }
-
-      if (jsonResult) {
-        if (textContent) {
-          setMessages(prev => [...prev, { role: 'assistant', content: textContent }]);
+      try {
+        const parsed = JSON.parse(reply);
+        if (parsed.reply) {
+          setMessages(prev => [...prev, { role: 'assistant', content: parsed.reply }]);
         }
-        setTimeout(() => onComplete(jsonResult), 2000);
-      } else {
+        if (parsed.is_finished && parsed.result) {
+          setTimeout(() => onComplete(parsed.result), 2000);
+        }
+      } catch (e) {
+        console.error("JSON Parse Error", e);
         setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
       }
     } catch (error) {
@@ -78,8 +66,7 @@ const ChatEventModal: React.FC<ChatEventModalProps> = ({ scenario, eventDescript
     setIsLoading(true);
     try {
       const resultJson = await conversation(messages);
-      const cleanJson = resultJson.replace(/```json/g, '').replace(/```/g, '').trim();
-      const result = JSON.parse(cleanJson);
+      const result = JSON.parse(resultJson);
       onComplete(result);
     } catch (error) {
       console.error("Evaluation failed", error);

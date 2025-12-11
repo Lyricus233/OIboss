@@ -49,7 +49,8 @@ app.post('/api/chat', async (req, res) => {
         const completion = await openai.chat.completions.create({
             messages: messages,
             model: "deepseek-chat",
-            temperature: 0.7
+            temperature: 0.7,
+            response_format: { type: 'json_object' }
         });
         const content = completion.choices[0].message.content || "";
         res.json({ content });
