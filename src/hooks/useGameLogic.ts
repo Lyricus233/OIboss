@@ -244,9 +244,9 @@ export const useGameLogic = () => {
     if (effects.fixedCost) s.fixedCost += effects.fixedCost;
 
     s.reputation = clamp(s.reputation, 0, 100);
-    s.coachMorale = clamp(s.coachMorale, 0, 120);
-    s.studentSatisfaction = clamp(s.studentSatisfaction, 0, 120);
-    s.bossStress = clamp(s.bossStress, 0, 120);
+    s.coachMorale = clamp(s.coachMorale, 0, 100);
+    s.studentSatisfaction = clamp(s.studentSatisfaction, 0, 100);
+    s.bossStress = clamp(s.bossStress, 0, 100);
     s.fixedCost = Math.max(0, s.fixedCost);
     s.potentialStudents = Math.max(0, s.potentialStudents);
   };
@@ -281,9 +281,8 @@ export const useGameLogic = () => {
 
     addLog(s, prefix + act.name + "。", act.id === "squeeze" ? "warning" : "success");
     
-    // 自动结束本周
-    setGameState(s);
-    setTimeout(() => endWeek(), 0);
+    // 自动结束本周，直接传入当前状态，避免闭包导致的旧状态覆盖问题
+    processEndWeekLogic(s);
   };
 
   const handleRandomEvent = (s: GameState) => {
@@ -297,7 +296,7 @@ export const useGameLogic = () => {
       if (ev.id === 'parent_chat') {
         const count = s.doneEvents?.filter(id => id === 'parent_chat').length || 0;
         if (count >= 3) return false;
-        if (Math.random() > 0.4) return false;
+        if (Math.random() > 0.5) return false;
       }
 
       return true;
@@ -517,10 +516,7 @@ export const useGameLogic = () => {
     return false;
   };
 
-  const endWeek = () => {
-    if (gameState.status !== 'PLAYING') return;
-    const s = { ...gameState };
-
+  const processEndWeekLogic = (s: GameState) => {
     simulateWeekEconomy(s);
     simulateContestIfAny(s);
     handleRandomEvent(s);
@@ -549,6 +545,12 @@ export const useGameLogic = () => {
     }];
 
     setGameState(s);
+  };
+
+  const endWeek = () => {
+    if (gameState.status !== 'PLAYING') return;
+    const s = { ...gameState };
+    processEndWeekLogic(s);
   };
 
   const upgradeCoach = () => {

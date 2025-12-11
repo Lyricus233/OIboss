@@ -122,30 +122,6 @@ const Dashboard: React.FC<DashboardProps> = ({
          </div>
       </div>
 
-      {/* Event Card */}
-      {gameState.currentEvent && (
-        <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm shrink-0 animate-pulse-slow">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="text-amber-600 shrink-0 mt-1" size={20} />
-            <div className="flex-1">
-              <h3 className="font-bold text-amber-900 mb-1">{gameState.currentEvent.title}</h3>
-              <p className="text-sm text-amber-800 mb-3">{gameState.currentEvent.text}</p>
-              <div className="flex flex-wrap gap-2">
-                {gameState.currentEvent.options?.map(opt => (
-                  <button
-                    key={opt.id}
-                    onClick={() => onEventOptionClick(gameState.currentEvent!.id, opt.id)}
-                    className="px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-sm font-medium text-amber-900 hover:bg-amber-100 transition-colors"
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Decision Panel */}
       <div className="flex-1 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col min-h-0">
          <div className="flex items-center justify-between mb-3 shrink-0">
