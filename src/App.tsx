@@ -85,7 +85,6 @@ const App: React.FC = () => {
             gameState={gameState}
             handleActionClick={handleActionClick}
             endWeek={endWeek}
-            onEventOptionClick={onEventOptionClick}
             onOpenRecruit={() => setShowRecruitModal(true)}
             upgradeCoach={upgradeCoach}
             upgradeFacility={upgradeFacility}
