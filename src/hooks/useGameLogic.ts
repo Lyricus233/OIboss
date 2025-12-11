@@ -297,7 +297,7 @@ export const useGameLogic = () => {
       if (ev.id === 'parent_chat') {
         const count = s.doneEvents?.filter(id => id === 'parent_chat').length || 0;
         if (count >= 3) return false;
-        if (Math.random() > 0.2) return false;
+        if (Math.random() > 0.4) return false;
       }
 
       return true;
