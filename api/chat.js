@@ -1,3 +1,4 @@
+// Serverless API
 const OpenAI = require('openai');
 
 module.exports = async (req, res) => {
@@ -7,13 +8,7 @@ module.exports = async (req, res) => {
 
     const apiKey = process.env.DEEPSEEK_API_KEY;
     const { messages } = req.body;
-    const isGameContext = messages.some(m =>
-        (m.role === 'system' || m.role === 'user') &&
-        (m.content.includes('信奥') || m.content.includes('机构') || m.content.includes('家长') || m.content.includes('谈判'))
-    );
-    if (!isGameContext) {
-        return res.status(403).json({ error: 'Invalid context: Only game-related queries are allowed.' });
-    }
+
     if (!apiKey) {
         return res.status(500).json({ error: 'API Key not configured' });
     }

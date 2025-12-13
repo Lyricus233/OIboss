@@ -138,8 +138,7 @@ const RecruitModal: React.FC<RecruitModalProps> = ({ gameState, onClose, onRecru
                        </div>
                        <div className="text-xs text-slate-500 flex gap-3">
                          <span>天赋: {c.student.talent}</span>
-                         <span>思维: {c.student.stats.thinking}</span>
-                         <span>算法: {c.student.stats.algorithms}</span>
+                         <span>能力: {c.student.ability}</span>
                        </div>
                      </div>
                      <div className="text-right">

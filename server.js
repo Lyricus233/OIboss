@@ -16,13 +16,6 @@ app.use((req, res, next) => {
         if (!messages || !Array.isArray(messages)) {
             return res.status(400).json({ error: 'Invalid messages format' });
         }
-        const isGameContext = messages.some(m =>
-            m.content && (m.content.includes('信奥') || m.content.includes('机构') || m.content.includes('家长') || m.content.includes('谈判'))
-        );
-        if (!isGameContext) {
-            console.log('Blocked non-game request');
-            return res.status(403).json({ error: 'Forbidden: Game context required' });
-        }
     }
     next();
 });

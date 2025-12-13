@@ -1,20 +1,13 @@
 export type Status = 'SETUP' | 'PLAYING' | 'MODAL' | 'GAME_OVER'; // 游戏状态
 export type CityTier = 'TIER1' | 'PROVINCIAL' | 'REMOTE';
 
-export interface StudentStats {
-  algorithms: number; // 算法知识
-  thinking: number;   // 思维能力
-  coding: number;     // 代码实现
-  math: number;       // 数学基础
-}
-
 export interface Student {
   id: string;
   name: string;
   gender: 'M' | 'F';
   tier: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   talent: number;
-  stats: StudentStats;
+  ability: number; // 综合能力 (0-100)
   mood: number;
   stress: number; 
   traits: string[];

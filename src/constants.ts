@@ -50,21 +50,21 @@ export const RECRUITMENT_CONFIG = {
     label: '普及组学生',
     cost: 5000,
     req: { reputation: 0, coachLevel: 1 },
-    statsRange: { min: 5, max: 15 },
+    abilityRange: { min: 5, max: 20 },
     talentRange: { min: 40, max: 70 }
   },
   INTERMEDIATE: {
     label: '提高组学生',
     cost: 20000,
     req: { reputation: 100, coachLevel: 2 },
-    statsRange: { min: 20, max: 40 },
+    abilityRange: { min: 25, max: 50 },
     talentRange: { min: 60, max: 90 }
   },
   ADVANCED: {
     label: '省队选手',
     cost: 100000,
     req: { reputation: 500, coachLevel: 4 },
-    statsRange: { min: 50, max: 80 },
+    abilityRange: { min: 60, max: 100 },
     talentRange: { min: 80, max: 100 }
   }
 };
@@ -86,7 +86,7 @@ export const NAMES = {
 
 export const TRAITS = [
   { name: '卷王', desc: '训练效果+20%，压力增加快', effect: { train: 1.2, stress: 1.5 } },
-  { name: '天才', desc: '思维属性成长+50%', effect: { thinking: 1.5 } },
+  { name: '天才', desc: '能力成长+50%', effect: { ability: 1.5 } },
   { name: '摸鱼', desc: '压力增加慢，训练效果-10%', effect: { stress: 0.7, train: 0.9 } },
   { name: '大心脏', desc: '比赛发挥稳定，不易失误', effect: { stability: 1.2 } },
   { name: '玻璃心', desc: '压力过高容易生病', effect: { sickChance: 1.5 } },

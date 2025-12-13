@@ -30,21 +30,12 @@ export const generateStudent = (id: string, tier: 'BEGINNER' | 'INTERMEDIATE' | 
   const talent = cfg.talentRange.min + Math.floor(Math.random() * (cfg.talentRange.max - cfg.talentRange.min));
   
   const trait = Math.random() < 0.3 ? [TRAITS[Math.floor(Math.random() * TRAITS.length)].name] : [];
-  const baseStat = () => cfg.statsRange.min + Math.floor(Math.random() * (cfg.statsRange.max - cfg.statsRange.min));
+  
+  const ability = cfg.abilityRange.min + Math.floor(Math.random() * (cfg.abilityRange.max - cfg.abilityRange.min));
 
-  const stats = {
-    algorithms: baseStat(),
-    thinking: baseStat(),
-    coding: baseStat(),
-    math: baseStat(),
-  };
-
-  const totalStats = stats.algorithms + stats.thinking + stats.coding + stats.math;
-  const score = totalStats + talent * 2;
-  const minStats = cfg.statsRange.min * 4;
-  const maxStats = cfg.statsRange.max * 4;
-  const minScore = minStats + cfg.talentRange.min * 2;
-  const maxScore = maxStats + cfg.talentRange.max * 2;
+  const score = ability + talent * 0.5;
+  const minScore = cfg.abilityRange.min + cfg.talentRange.min * 0.5;
+  const maxScore = cfg.abilityRange.max + cfg.talentRange.max * 0.5;
   const ratio = Math.max(0, Math.min(1, (score - minScore) / (maxScore - minScore)));
   const multiplier = 0.5 + ratio * 1.5;
   let finalCost = Math.round((cfg.cost * multiplier) / 100) * 100;
@@ -56,7 +47,7 @@ export const generateStudent = (id: string, tier: 'BEGINNER' | 'INTERMEDIATE' | 
     gender,
     tier,
     talent,
-    stats,
+    ability,
     mood: 80,
     stress: 0,
     traits: trait,
@@ -65,11 +56,10 @@ export const generateStudent = (id: string, tier: 'BEGINNER' | 'INTERMEDIATE' | 
 };
 
 export const calculateTuition = (student: Student) => {
-  const totalStats = student.stats.algorithms + student.stats.thinking + student.stats.coding + student.stats.math;
   let extraTuition = 300;
   if (student.tier === 'ADVANCED') extraTuition = 3000;
   else if (student.tier === 'INTERMEDIATE') extraTuition = 2000;
-  return Math.floor(totalStats * 15) + extraTuition;
+  return Math.floor(student.ability * 60) + extraTuition;
 };
 
 export const useGameLogic = () => {
