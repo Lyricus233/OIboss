@@ -128,6 +128,12 @@ export const CALENDAR_EVENTS: Record<number, CalendarEvent> = {
     name: 'NOI (国赛)',
     type: 'CONTEST',
     description: '全国决赛，金牌保送清北！',
+  },
+  30: {
+    week: 30,
+    name: 'CTS (国家队选拔)',
+    type: 'CONTEST',
+    description: '选拔国家队成员。',
   }
 };
 
@@ -142,7 +148,7 @@ export const AGENCY_ACTIONS = [
   {
     id: "camp",
     name: "开设集训营",
-    desc: "请教练加班开营，把学生集中拉一波水平。",
+    desc: "请金牌教练举办集训营，集中提升学生水平。",
     cost: -25000,
     effects: { reputation: +2, studentSatisfaction: +3, coachMorale: -5, bossStress: +8 },
   },
@@ -173,6 +179,13 @@ export const AGENCY_ACTIONS = [
     desc: "不看家长群，不回消息，摸鱼一天。",
     cost: 0,
     effects: { bossStress: -12, reputation: -1 },
+  },
+  {
+    id: "bankruptcy",
+    name: "申请破产清算",
+    desc: "实在撑不下去了，遣散员工，关门大吉。",
+    cost: 0,
+    effects: {},
   },
 ];
 

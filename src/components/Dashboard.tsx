@@ -136,28 +136,26 @@ const Dashboard: React.FC<DashboardProps> = ({
          
          <div className="grid grid-cols-3 gap-2 flex-1 overflow-y-auto pr-1 content-start">
             {AGENCY_ACTIONS.map(action => {
-              const isNegative = action.cost < 0;
+              const isBankruptcy = action.id === 'bankruptcy';
               return (
               <button 
                 key={action.id}
                 onClick={() => handleActionClick(action.id)} 
                 disabled={gameState.actedThisWeek}
-                className={`p-2 rounded-lg border transition-all text-left group relative overflow-hidden flex flex-col justify-between h-24
+                className={`p-2 rounded-lg border transition-all text-left group relative overflow-hidden h-auto
                   ${gameState.actedThisWeek 
                     ? 'bg-slate-50 border-slate-100 opacity-50 cursor-not-allowed' 
-                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'}`}
+                    : isBankruptcy
+                      ? 'bg-red-50 border-red-200 hover:border-red-400 hover:shadow-md hover:bg-red-100'
+                      : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'}`}
               >
                 <div>
-                  <div className="font-bold text-sm leading-tight mb-1 text-slate-800">
+                  <div className={`font-bold text-sm leading-tight mb-1 ${isBankruptcy ? 'text-red-700' : 'text-slate-800'}`}>
                     {action.name}
                   </div>
-                  <div className="text-xs text-slate-500 line-clamp-2">
+                  <div className={`text-xs line-clamp-2 ${isBankruptcy ? 'text-red-500' : 'text-slate-500'}`}>
                     {action.desc}
                   </div>
-                </div>
-                <div className={`text-xs font-mono font-bold self-start px-1.5 py-0.5 rounded mt-1
-                  ${isNegative ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
-                  {action.cost > 0 ? `+¥${action.cost.toLocaleString()}` : action.cost < 0 ? `-¥${Math.abs(action.cost).toLocaleString()}` : '免费'}
                 </div>
               </button>
             )})}

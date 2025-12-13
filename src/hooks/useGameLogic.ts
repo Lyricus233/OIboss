@@ -248,6 +248,43 @@ export const useGameLogic = () => {
     const act = AGENCY_ACTIONS.find((a) => a.id === actionId);
     if (!act) return;
 
+    if (act.id === 'bankruptcy') {
+      setGameState(prev => ({
+        ...prev,
+        status: 'MODAL',
+        modalContent: {
+          type: 'CONFIRM',
+          title: '申请破产清算',
+          description: '确定要申请破产清算吗？这将直接结束游戏！',
+          options: [
+            {
+              label: '确认破产',
+              isDanger: true,
+              action: () => {
+                 setGameState(p => ({
+                    ...p,
+                    status: 'GAME_OVER',
+                    gameOverReason: "主动破产",
+                    modalContent: {
+                        type: 'ALERT',
+                        title: '结局：及时止损',
+                        description: "你意识到继续经营下去只会越陷越深，于是果断选择了破产清算。虽然亏了一些钱，但至少没有背上巨额债务。"
+                    }
+                 }));
+              }
+            },
+            {
+              label: '取消',
+              action: () => {
+                setGameState(p => ({ ...p, status: 'PLAYING', modalContent: null }));
+              }
+            }
+          ]
+        }
+      }));
+      return;
+    }
+
     if (act.cost < 0 && s.cash + act.cost < 0) {
       addNotification(s, "资金不足！", 'error');
       setGameState(s);
@@ -519,10 +556,10 @@ export const useGameLogic = () => {
 
     s.week += 1;
     s.totalWeeks += 1;
-    if (s.week > 52) {
+    if (s.week > 30) {
       s.week = 1;
       s.year += 1;
-      addLog(s, `新的一年开始了，机构进入第 ${s.year} 年。`, "success");
+      addLog(s, `新的赛季开始了，机构进入第 ${s.year} 赛季。`, "success");
     }
     s.actedThisWeek = false;
 
