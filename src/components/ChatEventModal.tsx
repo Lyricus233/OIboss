@@ -33,7 +33,7 @@ const ChatEventModal: React.FC<ChatEventModalProps> = ({ scenario, eventDescript
   const remainingTurns = 10 - userMessageCount;
 
   const handleSend = async () => {
-    if (!input.trim() || remainingTurns <= 0) return;
+    if (!input.trim() || input.length > 100 || remainingTurns <= 0) return;
 
     const userMsg: ChatMessage = { role: 'user', content: input };
     const newHistory = [...messages, userMsg];
@@ -122,18 +122,23 @@ const ChatEventModal: React.FC<ChatEventModalProps> = ({ scenario, eventDescript
         {/* Input Area */}
         <div className="p-4 bg-white border-t border-slate-200 shrink-0 space-y-3">
           <div className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !isLoading && !completionResult && handleSend()}
-              placeholder={completionResult ? "对话已结束" : (remainingTurns > 0 ? "输入你的回复..." : "对话次数已用尽")}
-              disabled={isLoading || remainingTurns <= 0 || !!completionResult}
-              className="flex-1 px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-            />
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && !isLoading && !completionResult && handleSend()}
+                placeholder={completionResult ? "对话已结束" : (remainingTurns > 0 ? "输入你的回复..." : "对话次数已用尽")}
+                disabled={isLoading || remainingTurns <= 0 || !!completionResult}
+                className="w-full px-4 py-3 pr-16 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
+              />
+              <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none ${input.length >= 90 ? 'text-red-500 font-bold' : 'text-slate-400'}`}>
+                {input.length}/100
+              </span>
+            </div>
             <button
               onClick={handleSend}
-              disabled={isLoading || !input.trim() || remainingTurns <= 0 || !!completionResult}
+              disabled={isLoading || !input.trim() || input.length > 100 || remainingTurns <= 0 || !!completionResult}
               className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? <Loader2 className="animate-spin" /> : <Send />}

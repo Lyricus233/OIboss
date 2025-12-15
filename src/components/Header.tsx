@@ -1,7 +1,7 @@
 import React from 'react';
-import { Briefcase, DollarSign, Trophy, Calendar } from 'lucide-react';
+import { Briefcase, DollarSign, Trophy, Calendar, MapPin } from 'lucide-react';
 import { GameState } from '../types';
-import { CALENDAR_EVENTS } from '../constants';
+import { CALENDAR_EVENTS, PROVINCES } from '../constants';
 import { formatMoney } from '../../utils';
 
 interface HeaderProps {
@@ -9,6 +9,8 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ gameState }) => {
+  const provinceName = PROVINCES.find(p => p.id === gameState.province)?.name;
+
   return (
     <header className="bg-white border-b border-slate-200 px-4 py-2 flex justify-between items-center shrink-0 h-14 shadow-sm z-20">
       <div className="flex items-center gap-4">
@@ -18,6 +20,16 @@ const Header: React.FC<HeaderProps> = ({ gameState }) => {
           </div>
           <span className="font-bold text-slate-800 text-lg">{gameState.agencyName}</span>
         </div>
+
+        {provinceName && (
+          <>
+            <div className="h-4 w-px bg-slate-300 mx-1"></div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200">
+              <MapPin size={14} className="text-indigo-500" />
+              <span className="text-sm font-bold text-slate-700">{provinceName}</span>
+            </div>
+          </>
+        )}
         <div className="h-4 w-px bg-slate-300 mx-2"></div>
         <div className="flex gap-4 text-base font-mono">
           <span className="text-slate-500">第 {gameState.year} 赛季</span>

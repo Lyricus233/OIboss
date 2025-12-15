@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, UserPlus, RefreshCw } from 'lucide-react';
 import { GameState, Student } from '../types';
-import { RECRUITMENT_CONFIG } from '../constants';
+import { RECRUITMENT_CONFIG, TRAITS } from '../constants';
 import { formatMoney } from '../utils/format';
 import { generateStudent } from '../hooks/useGameLogic';
 
@@ -22,6 +22,7 @@ const RecruitModal: React.FC<RecruitModalProps> = ({ gameState, onClose, onRecru
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const [hoveredTrait, setHoveredTrait] = useState<{ config: typeof TRAITS[0], rect: DOMRect } | null>(null);
 
   const generateCandidates = () => {
     const newCandidates: Candidate[] = [];
@@ -33,7 +34,7 @@ const RecruitModal: React.FC<RecruitModalProps> = ({ gameState, onClose, onRecru
       
       const cfg = RECRUITMENT_CONFIG[tier];
       const existingNames = new Set(gameState.students.map(s => s.name));
-      const student = generateStudent(`c_${Date.now()}_${i}`, tier, undefined, existingNames);
+      const student = generateStudent(`c_${Date.now()}_${i}`, tier, undefined, existingNames, gameState.province);
       newCandidates.push({
         student,
         tier,
@@ -136,9 +137,26 @@ const RecruitModal: React.FC<RecruitModalProps> = ({ gameState, onClose, onRecru
                            {RECRUITMENT_CONFIG[c.tier].label}
                          </span>
                        </div>
-                       <div className="text-xs text-slate-500 flex gap-3">
+                       <div className="text-xs text-slate-500 flex gap-3 mb-1">
                          <span>天赋: {c.student.talent}</span>
                          <span>能力: {c.student.ability}</span>
+                       </div>
+                       <div className="flex gap-1 flex-wrap">
+                         {c.student.traits.map(t => {
+                           const traitConfig = TRAITS.find(tr => tr.name === t);
+                           return (
+                             <div 
+                               key={t} 
+                               className="relative group/trait"
+                               onMouseEnter={(e) => traitConfig && setHoveredTrait({ config: traitConfig, rect: e.currentTarget.getBoundingClientRect() })}
+                               onMouseLeave={() => setHoveredTrait(null)}
+                             >
+                               <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded-full border border-indigo-100 cursor-help hover:bg-indigo-100 transition-colors">
+                                 {t}
+                               </span>
+                             </div>
+                           );
+                         })}
                        </div>
                      </div>
                      <div className="text-right">
@@ -230,6 +248,21 @@ const RecruitModal: React.FC<RecruitModalProps> = ({ gameState, onClose, onRecru
            </div>
         </div>
       </div>
+
+      {hoveredTrait && (
+        <div 
+          className="fixed z-[100] w-48 p-3 bg-slate-800 text-white text-xs rounded-xl shadow-xl pointer-events-none"
+          style={{
+            top: hoveredTrait.rect.top - 8,
+            left: hoveredTrait.rect.left + (hoveredTrait.rect.width / 2),
+            transform: 'translate(-50%, -100%)'
+          }}
+        >
+          <div className="font-bold text-indigo-300 mb-1 text-sm">{hoveredTrait.config.name}</div>
+          <div className="text-slate-300 leading-relaxed">{hoveredTrait.config.desc}</div>
+          <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 rotate-45"></div>
+        </div>
+      )}
     </div>
   );
 };

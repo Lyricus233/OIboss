@@ -1,5 +1,6 @@
 export type Status = 'SETUP' | 'PLAYING' | 'MODAL' | 'GAME_OVER'; // 游戏状态
 export type CityTier = 'TIER1' | 'PROVINCIAL' | 'REMOTE';
+export type LogType = 'success' | 'warning' | 'danger' | 'info';
 
 export interface Student {
   id: string;
@@ -19,6 +20,7 @@ export interface GameState {
   agencyName: string;
   bossName: string;
   city: CityTier;
+  province: string;
   
   cash: number;
   reputation: number;
@@ -111,10 +113,17 @@ export interface RandomEvent {
   activeChat?: ChatScenario;
 }
 
+export interface ActionOutcome {
+  weight: number;
+  description: string;
+  effects: any;
+  type?: 'success' | 'warning' | 'danger' | 'info';
+}
+
 export interface AgencyAction {
   id: string;
   name: string;
   desc: string;
   cost: number;
-  effects: any;
+  outcomes?: ActionOutcome[];
 }

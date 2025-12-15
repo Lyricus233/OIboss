@@ -39,6 +39,15 @@ app.post('/api/chat', async (req, res) => {
         if (!messages) {
             return res.status(400).json({ error: 'Messages are required' });
         }
+
+        const hasLongUserMessage = messages.some(msg =>
+            msg.role === 'user' && typeof msg.content === 'string' && msg.content.length > 100
+        );
+
+        if (hasLongUserMessage) {
+            return res.status(400).json({ error: 'User message exceeds 100 characters limit' });
+        }
+
         const completion = await openai.chat.completions.create({
             messages: messages,
             model: "deepseek-chat",

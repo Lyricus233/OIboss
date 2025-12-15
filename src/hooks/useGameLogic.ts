@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { GameState, CityTier, LogEntry, Student } from '../types';
+import { GameState, CityTier, LogEntry, Student, LogType } from '../types';
 import { 
   COACH_UPGRADE_COSTS, 
   AGENCY_ACTIONS,
@@ -8,10 +8,12 @@ import {
   RECRUITMENT_CONFIG,
   TRAITS,
   FACILITY_CONFIG,
-  WEEKLY_RENT
+  WEEKLY_RENT,
+  PROVINCES,
+  INITIAL_CASH
 } from '../constants';
 
-export const generateStudent = (id: string, tier: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' = 'BEGINNER', customName?: string, existingNames: Set<string> = new Set()): Student => {
+export const generateStudent = (id: string, tier: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' = 'BEGINNER', customName?: string, existingNames: Set<string> = new Set(), provinceId?: string): Student => {
   let fullName = customName || '';
   
   if (!fullName) {
@@ -27,7 +29,14 @@ export const generateStudent = (id: string, tier: 'BEGINNER' | 'INTERMEDIATE' | 
   const gender = Math.random() > 0.5 ? 'M' : 'F';
   
   const cfg = RECRUITMENT_CONFIG[tier];
-  const talent = cfg.talentRange.min + Math.floor(Math.random() * (cfg.talentRange.max - cfg.talentRange.min));
+  let talent = cfg.talentRange.min + Math.floor(Math.random() * (cfg.talentRange.max - cfg.talentRange.min));
+  
+  if (provinceId) {
+    const province = PROVINCES.find(p => p.id === provinceId);
+    if (province && province.buff && province.buff.talent) {
+      talent += province.buff.talent;
+    }
+  }
   
   const trait = Math.random() < 0.3 ? [TRAITS[Math.floor(Math.random() * TRAITS.length)].name] : [];
   
@@ -59,7 +68,16 @@ export const calculateTuition = (student: Student) => {
   let extraTuition = 300;
   if (student.tier === 'ADVANCED') extraTuition = 3000;
   else if (student.tier === 'INTERMEDIATE') extraTuition = 2000;
-  return Math.floor(student.ability * 60) + extraTuition;
+  
+  let base = Math.floor(student.ability * 60) + extraTuition;
+  
+  if (student.traits && student.traits.includes('富二代')) {
+    const trait = TRAITS.find(t => t.name === '富二代');
+    const multiplier = (trait?.effect as any)?.tuition || 1.5;
+    base = Math.floor(base * multiplier);
+  }
+  
+  return base;
 };
 
 export const useGameLogic = () => {
@@ -67,6 +85,7 @@ export const useGameLogic = () => {
     status: 'SETUP',
     bossName: '',
     agencyName: '',
+    province: '',
     city: 'PROVINCIAL',
     year: 1,
     week: 1,
@@ -100,6 +119,7 @@ export const useGameLogic = () => {
     bossName: '飓风王金',
     agencyName: '萌猫信奥',
     city: 'PROVINCIAL' as CityTier,
+    province: '',
     difficulty: 'normal' as 'easy' | 'normal' | 'hard',
   });
 
@@ -151,37 +171,44 @@ export const useGameLogic = () => {
     let fixedCost = 0;
     let reputation = 0;
     let studentsCount = 5;
+    let stress = 20;
 
     if (setupForm.city === 'TIER1') {
-      cash = 250000;
+      cash = INITIAL_CASH.TIER1;
       fixedCost = WEEKLY_RENT.TIER1;
-      reputation = 18;
+      reputation = 20;
     } else if (setupForm.city === 'PROVINCIAL') {
-      cash = 180000;
+      cash = INITIAL_CASH.PROVINCIAL;
       fixedCost = WEEKLY_RENT.PROVINCIAL;
       reputation = 15;
     } else {
-      cash = 120000;
+      cash = INITIAL_CASH.REMOTE;
       fixedCost = WEEKLY_RENT.REMOTE;
-      reputation = 12;
+      reputation = 10;
     }
 
     fixedCost += FACILITY_CONFIG[1].rent;
 
-    let stress = 20;
+    const provinceData = PROVINCES.find(p => p.id === setupForm.province);
+    if (provinceData && provinceData.buff) {
+      if (provinceData.buff.money) cash += provinceData.buff.money;
+      if (provinceData.buff.reputation) reputation += provinceData.buff.reputation;
+      if (provinceData.buff.stress) stress += provinceData.buff.stress;
+    }
+
     if (setupForm.difficulty === 'easy') {
       cash *= 1.6;
       fixedCost *= 0.8;
-      stress = 10;
+      stress = Math.max(0, stress - 10);
     } else if (setupForm.difficulty === 'hard') {
       cash *= 0.7;
       fixedCost *= 1.1;
-      stress = 30;
+      stress += 10;
     }
 
     const initialStudents: Student[] = [];
     for (let i = 0; i < studentsCount; i++) {
-      initialStudents.push(generateStudent(`init-${i}`, 'BEGINNER'));
+      initialStudents.push(generateStudent(`init-${i}`, 'BEGINNER', undefined, undefined, setupForm.province));
     }
     
     setGameState({
@@ -190,10 +217,11 @@ export const useGameLogic = () => {
       bossName: setupForm.bossName,
       agencyName: setupForm.agencyName,
       city: setupForm.city,
-      cash: cash,
-      fixedCost: fixedCost,
-      reputation: reputation,
-      bossStress: stress,
+      province: setupForm.province,
+      cash: Math.round(cash),
+      fixedCost: Math.round(fixedCost),
+      reputation: Math.max(0, reputation),
+      bossStress: Math.max(0, stress),
       totalMedals: 0,
       students: initialStudents,
       coachMorale: 80,
@@ -204,10 +232,10 @@ export const useGameLogic = () => {
       actedThisWeek: false,
       currentEvent: null,
       doneEvents: [],
-      statsHistory: [{ week: 1, cash, reputation }],
+      statsHistory: [{ week: 1, cash: Math.round(cash), reputation: Math.max(0, reputation) }],
       history: [{
         id: 'init', week: 1, type: 'success',
-        message: `您好 ${setupForm.bossName}，${setupForm.agencyName} 正式开业！有五名学生慕名而来！`
+        message: `您好 ${setupForm.bossName}，位于${provinceData?.name || ''}的${setupForm.agencyName} 正式开业！有五名学生慕名而来！`
       }]
     });
   };
@@ -224,7 +252,7 @@ export const useGameLogic = () => {
     if (effects.students) {
        if (effects.students > 0) {
          for(let i=0; i<effects.students; i++) {
-           s.students.push(generateStudent(`evt-${s.totalWeeks}-${i}`, 'BEGINNER'));
+           s.students.push(generateStudent(`evt-${s.totalWeeks}-${i}`, 'BEGINNER', undefined, undefined, s.province));
          }
        } else if (effects.students < 0) {
          s.students.splice(0, Math.abs(effects.students));
@@ -298,15 +326,35 @@ export const useGameLogic = () => {
       return;
     }
 
-    applyEffects(s, act.effects);
+    if (act.outcomes && act.outcomes.length > 0) {
+      const rand = Math.random() * 100;
+      let sum = 0;
+      let selectedOutcome = act.outcomes[0];
+      
+      for (const o of act.outcomes) {
+        sum += o.weight;
+        if (rand < sum) {
+          selectedOutcome = o;
+          break;
+        }
+      }
+
+      applyEffects(s, selectedOutcome.effects);
+
+      const parts = [];
+      const e = selectedOutcome.effects as any;
+      if (e.money) parts.push(`资金${e.money > 0 ? '+' : ''}${e.money}`);
+      if (e.reputation) parts.push(`声望${e.reputation > 0 ? '+' : ''}${e.reputation}`);
+      if (e.studentSatisfaction) parts.push(`满意度${e.studentSatisfaction > 0 ? '+' : ''}${e.studentSatisfaction}`);
+      if (e.coachMorale) parts.push(`士气${e.coachMorale > 0 ? '+' : ''}${e.coachMorale}`);
+      if (e.bossStress) parts.push(`压力${e.bossStress > 0 ? '+' : ''}${e.bossStress}`);
+      if (e.potentialStudents) parts.push(`潜在生源${e.potentialStudents > 0 ? '+' : ''}${e.potentialStudents}`);
+      
+      const effectStr = parts.length > 0 ? `「${parts.join(' ')}」` : '';
+      addLog(s, `${act.name}：${selectedOutcome.description}${effectStr}`, selectedOutcome.type as LogType || 'info');
+    }
+
     s.actedThisWeek = true;
-
-    let prefix = "";
-    if (act.id === "rest") prefix = "摸鱼了一天，";
-    else if (act.id === "squeeze") prefix = "你选择了短期逐利，";
-    else prefix = "你拍板决定，";
-
-    addLog(s, prefix + act.name + "。", act.id === "squeeze" ? "warning" : "success");
     
     // 自动结束本周，直接传入当前状态，避免闭包导致的旧状态覆盖问题
     processEndWeekLogic(s);
@@ -360,7 +408,7 @@ export const useGameLogic = () => {
       if (result.reward.coachMorale) parts.push(`士气${result.reward.coachMorale > 0 ? '+' : ''}${result.reward.coachMorale}`);
       
       if (parts.length > 0) {
-        effectText = ` (${parts.join('，')})`;
+        effectText = `「${parts.join('，')}」`;
       }
     }
 
@@ -385,11 +433,96 @@ export const useGameLogic = () => {
     const opt = event.options.find((o: any) => o.id === optionId);
     if (!opt) return;
 
-    applyEffects(s, opt.effects);
-    addLog(s, opt.log, "success");
+    if (opt.outcomes && opt.outcomes.length > 0) {
+      const rand = Math.random() * 100;
+      let sum = 0;
+      let selectedOutcome = opt.outcomes[0];
+      
+      for (const o of opt.outcomes) {
+        sum += o.weight;
+        if (rand < sum) {
+          selectedOutcome = o;
+          break;
+        }
+      }
+
+      applyEffects(s, selectedOutcome.effects);
+
+      const parts = [];
+      const e = selectedOutcome.effects as any;
+      if (e.money) parts.push(`资金${e.money > 0 ? '+' : ''}${e.money}`);
+      if (e.reputation) parts.push(`声望${e.reputation > 0 ? '+' : ''}${e.reputation}`);
+      if (e.studentSatisfaction) parts.push(`满意度${e.studentSatisfaction > 0 ? '+' : ''}${e.studentSatisfaction}`);
+      if (e.coachMorale) parts.push(`士气${e.coachMorale > 0 ? '+' : ''}${e.coachMorale}`);
+      if (e.bossStress) parts.push(`压力${e.bossStress > 0 ? '+' : ''}${e.bossStress}`);
+      if (e.potentialStudents) parts.push(`潜在生源${e.potentialStudents > 0 ? '+' : ''}${e.potentialStudents}`);
+      
+      const effectStr = parts.length > 0 ? `「${parts.join(' ')}」` : '';
+      addLog(s, selectedOutcome.description+effectStr, selectedOutcome.type as LogType || 'info');
+    } else {
+      applyEffects(s, opt.effects);
+      addLog(s, opt.log, "success");
+    }
+
     s.currentEvent = null;
     checkGameOver(s);
     setGameState(s);
+  };
+
+  const simulateStudentGrowth = (s: GameState) => {
+    let totalSatisfactionBonus = 0;
+    
+    s.students.forEach(student => {
+      let growth = (student.talent * 0.001) + (s.coachLevel * 0.05);
+      
+      const traits = student.traits || [];
+      
+      const getEffectValue = (traitName: string, key: string, defaultValue: number = 0) => {
+        if (!traits.includes(traitName)) return defaultValue;
+        const trait = TRAITS.find(t => t.name === traitName);
+        return (trait?.effect as any)?.[key] || defaultValue;
+      };
+
+      let growthMultiplier = 1;
+      if (traits.includes('卷王')) growthMultiplier *= getEffectValue('卷王', 'train', 1.2);
+      if (traits.includes('天才')) growthMultiplier *= getEffectValue('天才', 'ability', 1.5);
+      if (traits.includes('摸鱼')) growthMultiplier *= getEffectValue('摸鱼', 'train', 0.9);
+      if (traits.includes('勤奋')) growthMultiplier *= getEffectValue('勤奋', 'ability', 1.1);
+      if (traits.includes('迟钝')) growthMultiplier *= getEffectValue('迟钝', 'train', 0.8);
+      
+      growth *= growthMultiplier;
+
+      if (traits.includes('卷王')) student.stress += 2;
+      if (traits.includes('勤奋')) student.stress += 1;
+      
+      if (traits.includes('摸鱼')) student.stress = Math.max(0, student.stress - 1);
+      if (traits.includes('迟钝')) student.stress = Math.max(0, student.stress - 2);
+      if (traits.includes('活泼')) student.stress = Math.max(0, student.stress - 1);
+
+      if (traits.includes('社牛')) totalSatisfactionBonus += 0.5;
+      if (traits.includes('活泼')) totalSatisfactionBonus += 0.8;
+
+      if (traits.includes('玻璃心')) {
+        if (student.stress > 60) {
+           growth *= 0.5;
+           const sickChanceMult = getEffectValue('玻璃心', 'sickChance', 1.5);
+           if (Math.random() < 0.05 * sickChanceMult) {
+             addLog(s, `学生 ${student.name} (玻璃心) 因为压力过大生病了，能力略微下降。`, 'warning');
+             student.ability = Math.max(0, student.ability - 1);
+           }
+        }
+      }
+
+      student.ability += growth;
+      
+      if (student.ability > 100) student.ability = 100;
+      
+      student.stress = Math.max(0, student.stress - (s.facilityLevel * 0.5));
+    });
+
+    if (totalSatisfactionBonus > 0) {
+      s.studentSatisfaction = Math.min(100, s.studentSatisfaction + totalSatisfactionBonus);
+    }
   };
 
   const simulateWeekEconomy = (s: GameState) => {
@@ -408,7 +541,8 @@ export const useGameLogic = () => {
 
     addLog(s, `本周财务：学费 +¥${tuition.toLocaleString()}，房租 -¥${cost.toLocaleString()}。净收支：${netIncome >= 0 ? '+' : ''}¥${netIncome.toLocaleString()}`, netIncome >= 0 ? 'success' : 'warning');
 
-    if (s.potentialStudents > 0) {
+    const triggerChance = s.potentialStudents > 10 ? 0.5 : 0.25;
+    if (s.potentialStudents > 0 && Math.random() < triggerChance) {
       const gained = Math.round(
         Math.random() * (s.potentialStudents / 2) + s.potentialStudents / 3
       );
@@ -418,7 +552,7 @@ export const useGameLogic = () => {
 
       if (realGained > 0) {
         for(let i=0; i<realGained; i++) {
-           s.students.push(generateStudent(`auto-${s.totalWeeks}-${i}`, 'BEGINNER'));
+           s.students.push(generateStudent(`auto-${s.totalWeeks}-${i}`, 'BEGINNER', undefined, undefined, s.province));
         }
         addLog(s, `由于前期运营，本周新增 ${realGained} 名在读学生。`, "success");
       }
@@ -458,10 +592,63 @@ export const useGameLogic = () => {
     if (phase === 30) name = "省选";
     if (phase === 40) name = "NOI 决战";
 
-    const strengthProxy = s.coachLevel * 20;
-    const base = strengthProxy * 0.6 + s.reputation * 0.25 + s.studentSatisfaction * 0.15;
-    const noise = (Math.random() - 0.5) * 20;
-    const score = base + noise;
+    const topStudents = [...s.students].sort((a, b) => b.ability - a.ability).slice(0, 5);
+    
+    let score = 0;
+    
+    if (topStudents.length === 0) {
+        score = 0;
+    } else {
+        let teamAbilitySum = 0;
+        let stabilityBonus = 0;
+        let luckBonus = 0;
+        let contestBonus = 0;
+
+        // Helper to get effect value safely
+        const getEffectValue = (traits: string[], traitName: string, key: string, defaultValue: number = 0) => {
+          if (!traits.includes(traitName)) return defaultValue;
+          const trait = TRAITS.find(t => t.name === traitName);
+          return (trait?.effect as any)?.[key] || defaultValue;
+        };
+
+        topStudents.forEach(st => {
+          teamAbilitySum += st.ability;
+          const traits = st.traits || [];
+          
+          // Use effect values
+          if (traits.includes('大心脏')) stabilityBonus += (getEffectValue(traits, '大心脏', 'stability', 1.2) - 1) * 25; // 1.2 -> +5
+          if (traits.includes('领袖')) stabilityBonus += (getEffectValue(traits, '领袖', 'teamStability', 1.2) - 1) * 40; // 1.2 -> +8
+          if (traits.includes('锦鲤')) luckBonus += (getEffectValue(traits, '锦鲤', 'luck', 1.5) - 1) * 20; // 1.5 -> +10
+          if (traits.includes('手速怪')) contestBonus += (getEffectValue(traits, '手速怪', 'contest', 1.1) - 1) * 30; // 1.1 -> +3
+          if (traits.includes('考霸')) contestBonus += (getEffectValue(traits, '考霸', 'contest', 1.2) - 1) * 25; // 1.2 -> +5
+          
+          if (traits.includes('偏科')) {
+             const creativity = getEffectValue(traits, '偏科', 'creativity', 1.3);
+             teamAbilitySum += (Math.random() - 0.5) * 15 * (creativity - 0.3); // High variance
+          }
+        });
+
+        const avgAbility = teamAbilitySum / Math.max(1, topStudents.length);
+        
+        const coachScore = s.coachLevel * 10;
+        const repScore = Math.min(100, s.reputation);
+        
+        let base = avgAbility * 0.6 + coachScore * 0.3 + repScore * 0.1;
+        
+        base += contestBonus;
+        
+        let noiseRange = 15;
+        if (stabilityBonus > 0) noiseRange = Math.max(5, 15 - stabilityBonus);
+        
+        let noise = (Math.random() - 0.5) * noiseRange * 2; // -15 to +15
+        
+        if (Math.random() * 100 < luckBonus) {
+           noise += 15; 
+           addLog(s, "锦鲤附体！比赛中运气爆棚！", 'success');
+        }
+
+        score = base + noise;
+    }
 
     let medalType = "";
     if (score > 90) medalType = "整体发挥惊艳，冲上朋友圈热搜。";
@@ -469,7 +656,7 @@ export const useGameLogic = () => {
     else if (score > 60) medalType = "发挥中规中矩，尚有提升空间。";
     else medalType = "成绩略显拉胯，一些家长开始摇摆。";
 
-    addLog(s, `本周是 ${name}，${medalType}`, score > 75 ? "success" : "danger");
+    addLog(s, `本周是 ${name}，${medalType} (综合评分: ${score.toFixed(1)})`, score > 75 ? "success" : "danger");
 
     if (score > 90) {
       applyEffects(s, { reputation: +6, potentialStudents: +15 });
@@ -544,6 +731,7 @@ export const useGameLogic = () => {
   };
 
   const processEndWeekLogic = (s: GameState) => {
+    simulateStudentGrowth(s);
     simulateWeekEconomy(s);
     simulateContestIfAny(s);
     handleRandomEvent(s);

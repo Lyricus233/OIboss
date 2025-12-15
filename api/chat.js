@@ -34,6 +34,14 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'Invalid messages format' });
     }
 
+    const hasLongUserMessage = messages.some(msg =>
+        msg.role === 'user' && typeof msg.content === 'string' && msg.content.length > 100
+    );
+
+    if (hasLongUserMessage) {
+        return res.status(400).json({ error: 'User message exceeds 100 characters limit' });
+    }
+
     const openai = new OpenAI({
         baseURL: 'https://api.deepseek.com',
         apiKey: apiKey,
