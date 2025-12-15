@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Student } from '../types';
 import { Edit2, DollarSign, Trash2 } from 'lucide-react';
 import { calculateTuition } from '../hooks/useGameLogic';
-import { TRAITS } from '../constants';
+import { TAGS } from '../constants';
 
 interface StudentCardProps {
   student: Student;
@@ -13,7 +13,7 @@ interface StudentCardProps {
 const StudentCard: React.FC<StudentCardProps> = ({ student, onRename, onDismiss }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(student.name);
-  const [hoveredTrait, setHoveredTrait] = useState<{ config: typeof TRAITS[0], rect: DOMRect } | null>(null);
+  const [hoveredTag, setHoveredTag] = useState<{ config: typeof TAGS[0], rect: DOMRect } | null>(null);
 
   React.useEffect(() => {
     setEditName(student.name);
@@ -52,14 +52,14 @@ const StudentCard: React.FC<StudentCardProps> = ({ student, onRename, onDismiss 
           )}
         </div>
         <div className="flex gap-1 items-center">
-          {student.traits.map(t => {
-            const traitConfig = TRAITS.find(tr => tr.name === t);
+          {student.tags.map(t => {
+            const tagConfig = TAGS.find(tr => tr.name === t);
             return (
               <div 
                 key={t} 
-                className="relative group/trait"
-                onMouseEnter={(e) => traitConfig && setHoveredTrait({ config: traitConfig, rect: e.currentTarget.getBoundingClientRect() })}
-                onMouseLeave={() => setHoveredTrait(null)}
+                className="relative group/tag"
+                onMouseEnter={(e) => tagConfig && setHoveredTag({ config: tagConfig, rect: e.currentTarget.getBoundingClientRect() })}
+                onMouseLeave={() => setHoveredTag(null)}
               >
                 <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded-full border border-indigo-100 cursor-help hover:bg-indigo-100 transition-colors">
                   {t}
@@ -109,17 +109,17 @@ const StudentCard: React.FC<StudentCardProps> = ({ student, onRename, onDismiss 
         </div>
       </div>
 
-      {hoveredTrait && (
+      {hoveredTag && (
         <div 
           className="fixed z-[100] w-48 p-3 bg-slate-800 text-white text-xs rounded-xl shadow-xl pointer-events-none"
           style={{
-            top: hoveredTrait.rect.top - 8,
-            left: hoveredTrait.rect.left + (hoveredTrait.rect.width / 2),
+            top: hoveredTag.rect.top - 8,
+            left: hoveredTag.rect.left + (hoveredTag.rect.width / 2),
             transform: 'translate(-50%, -100%)'
           }}
         >
-          <div className="font-bold text-indigo-300 mb-1 text-sm">{hoveredTrait.config.name}</div>
-          <div className="text-slate-300 leading-relaxed">{hoveredTrait.config.desc}</div>
+          <div className="font-bold text-indigo-300 mb-1 text-sm">{hoveredTag.config.name}</div>
+          <div className="text-slate-300 leading-relaxed">{hoveredTag.config.desc}</div>
           <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 rotate-45"></div>
         </div>
       )}

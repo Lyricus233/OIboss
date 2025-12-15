@@ -11,7 +11,7 @@ export interface Student {
   ability: number; // 综合能力 (0-100)
   mood: number;
   stress: number; 
-  traits: string[];
+  tags: string[];
   cost: number; 
 }
 

@@ -6,7 +6,7 @@ import {
   RANDOM_EVENTS,
   NAMES,
   RECRUITMENT_CONFIG,
-  TRAITS,
+  TAGS,
   FACILITY_CONFIG,
   WEEKLY_RENT,
   PROVINCES,
@@ -38,7 +38,7 @@ export const generateStudent = (id: string, tier: 'BEGINNER' | 'INTERMEDIATE' | 
     }
   }
   
-  const trait = Math.random() < 0.3 ? [TRAITS[Math.floor(Math.random() * TRAITS.length)].name] : [];
+  const tags = Math.random() < 0.3 ? [TAGS[Math.floor(Math.random() * TAGS.length)].name] : [];
   
   const ability = cfg.abilityRange.min + Math.floor(Math.random() * (cfg.abilityRange.max - cfg.abilityRange.min));
 
@@ -59,7 +59,7 @@ export const generateStudent = (id: string, tier: 'BEGINNER' | 'INTERMEDIATE' | 
     ability,
     mood: 80,
     stress: 0,
-    traits: trait,
+    tags: tags,
     cost: finalCost
   };
 };
@@ -71,9 +71,9 @@ export const calculateTuition = (student: Student) => {
   
   let base = Math.floor(student.ability * 60) + extraTuition;
   
-  if (student.traits && student.traits.includes('富二代')) {
-    const trait = TRAITS.find(t => t.name === '富二代');
-    const multiplier = (trait?.effect as any)?.tuition || 1.5;
+  if (student.tags && student.tags.includes('富二代')) {
+    const tag = TAGS.find(t => t.name === '富二代');
+    const multiplier = (tag?.effect as any)?.tuition || 1.5;
     base = Math.floor(base * multiplier);
   }
   
@@ -475,34 +475,34 @@ export const useGameLogic = () => {
     s.students.forEach(student => {
       let growth = (student.talent * 0.001) + (s.coachLevel * 0.05);
       
-      const traits = student.traits || [];
+      const tags = student.tags || [];
       
-      const getEffectValue = (traitName: string, key: string, defaultValue: number = 0) => {
-        if (!traits.includes(traitName)) return defaultValue;
-        const trait = TRAITS.find(t => t.name === traitName);
-        return (trait?.effect as any)?.[key] || defaultValue;
+      const getEffectValue = (tagName: string, key: string, defaultValue: number = 0) => {
+        if (!tags.includes(tagName)) return defaultValue;
+        const tag = TAGS.find(t => t.name === tagName);
+        return (tag?.effect as any)?.[key] || defaultValue;
       };
 
       let growthMultiplier = 1;
-      if (traits.includes('卷王')) growthMultiplier *= getEffectValue('卷王', 'train', 1.2);
-      if (traits.includes('天才')) growthMultiplier *= getEffectValue('天才', 'ability', 1.5);
-      if (traits.includes('摸鱼')) growthMultiplier *= getEffectValue('摸鱼', 'train', 0.9);
-      if (traits.includes('勤奋')) growthMultiplier *= getEffectValue('勤奋', 'ability', 1.1);
-      if (traits.includes('迟钝')) growthMultiplier *= getEffectValue('迟钝', 'train', 0.8);
+      if (tags.includes('卷王')) growthMultiplier *= getEffectValue('卷王', 'train', 1.2);
+      if (tags.includes('天才')) growthMultiplier *= getEffectValue('天才', 'ability', 1.5);
+      if (tags.includes('摸鱼')) growthMultiplier *= getEffectValue('摸鱼', 'train', 0.9);
+      if (tags.includes('勤奋')) growthMultiplier *= getEffectValue('勤奋', 'ability', 1.1);
+      if (tags.includes('迟钝')) growthMultiplier *= getEffectValue('迟钝', 'train', 0.8);
       
       growth *= growthMultiplier;
 
-      if (traits.includes('卷王')) student.stress += 2;
-      if (traits.includes('勤奋')) student.stress += 1;
+      if (tags.includes('卷王')) student.stress += 2;
+      if (tags.includes('勤奋')) student.stress += 1;
       
-      if (traits.includes('摸鱼')) student.stress = Math.max(0, student.stress - 1);
-      if (traits.includes('迟钝')) student.stress = Math.max(0, student.stress - 2);
-      if (traits.includes('活泼')) student.stress = Math.max(0, student.stress - 1);
+      if (tags.includes('摸鱼')) student.stress = Math.max(0, student.stress - 1);
+      if (tags.includes('迟钝')) student.stress = Math.max(0, student.stress - 2);
+      if (tags.includes('活泼')) student.stress = Math.max(0, student.stress - 1);
 
-      if (traits.includes('社牛')) totalSatisfactionBonus += 0.5;
-      if (traits.includes('活泼')) totalSatisfactionBonus += 0.8;
+      if (tags.includes('社牛')) totalSatisfactionBonus += 0.5;
+      if (tags.includes('活泼')) totalSatisfactionBonus += 0.8;
 
-      if (traits.includes('玻璃心')) {
+      if (tags.includes('玻璃心')) {
         if (student.stress > 60) {
            growth *= 0.5;
            const sickChanceMult = getEffectValue('玻璃心', 'sickChance', 1.5);
@@ -605,25 +605,25 @@ export const useGameLogic = () => {
         let contestBonus = 0;
 
         // Helper to get effect value safely
-        const getEffectValue = (traits: string[], traitName: string, key: string, defaultValue: number = 0) => {
-          if (!traits.includes(traitName)) return defaultValue;
-          const trait = TRAITS.find(t => t.name === traitName);
-          return (trait?.effect as any)?.[key] || defaultValue;
+        const getEffectValue = (tags: string[], tagName: string, key: string, defaultValue: number = 0) => {
+          if (!tags.includes(tagName)) return defaultValue;
+          const tag = TAGS.find(t => t.name === tagName);
+          return (tag?.effect as any)?.[key] || defaultValue;
         };
 
         topStudents.forEach(st => {
           teamAbilitySum += st.ability;
-          const traits = st.traits || [];
+          const tags = st.tags || [];
           
           // Use effect values
-          if (traits.includes('大心脏')) stabilityBonus += (getEffectValue(traits, '大心脏', 'stability', 1.2) - 1) * 25; // 1.2 -> +5
-          if (traits.includes('领袖')) stabilityBonus += (getEffectValue(traits, '领袖', 'teamStability', 1.2) - 1) * 40; // 1.2 -> +8
-          if (traits.includes('锦鲤')) luckBonus += (getEffectValue(traits, '锦鲤', 'luck', 1.5) - 1) * 20; // 1.5 -> +10
-          if (traits.includes('手速怪')) contestBonus += (getEffectValue(traits, '手速怪', 'contest', 1.1) - 1) * 30; // 1.1 -> +3
-          if (traits.includes('考霸')) contestBonus += (getEffectValue(traits, '考霸', 'contest', 1.2) - 1) * 25; // 1.2 -> +5
+          if (tags.includes('大心脏')) stabilityBonus += (getEffectValue(tags, '大心脏', 'stability', 1.2) - 1) * 25; // 1.2 -> +5
+          if (tags.includes('领袖')) stabilityBonus += (getEffectValue(tags, '领袖', 'teamStability', 1.2) - 1) * 40; // 1.2 -> +8
+          if (tags.includes('锦鲤')) luckBonus += (getEffectValue(tags, '锦鲤', 'luck', 1.5) - 1) * 20; // 1.5 -> +10
+          if (tags.includes('手速怪')) contestBonus += (getEffectValue(tags, '手速怪', 'contest', 1.1) - 1) * 30; // 1.1 -> +3
+          if (tags.includes('考霸')) contestBonus += (getEffectValue(tags, '考霸', 'contest', 1.2) - 1) * 25; // 1.2 -> +5
           
-          if (traits.includes('偏科')) {
-             const creativity = getEffectValue(traits, '偏科', 'creativity', 1.3);
+          if (tags.includes('偏科')) {
+             const creativity = getEffectValue(tags, '偏科', 'creativity', 1.3);
              teamAbilitySum += (Math.random() - 0.5) * 15 * (creativity - 0.3); // High variance
           }
         });

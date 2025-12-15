@@ -124,7 +124,7 @@ export const NAMES = {
   ]
 };
 
-export const TRAITS = [
+export const TAGS = [
   { name: '卷王', desc: '训练效果+20%，压力增加快', effect: { train: 1.2, stress: 1.5 } },
   { name: '天才', desc: '能力成长+50%', effect: { ability: 1.5 } },
   { name: '摸鱼', desc: '压力增加慢，训练效果-10%', effect: { stress: 0.7, train: 0.9 } },
