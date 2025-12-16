@@ -136,7 +136,33 @@ const Dashboard: React.FC<DashboardProps> = ({
          
          <div className="grid grid-cols-3 gap-2 flex-1 overflow-y-auto pr-1 content-start">
             {AGENCY_ACTIONS.map(action => {
-              const isBankruptcy = action.id === 'bankruptcy';
+              const themeStyles = {
+                default: {
+                  btn: 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md',
+                  title: 'text-slate-800',
+                  desc: 'text-slate-500'
+                },
+                danger: {
+                  btn: 'bg-red-50 border-red-200 hover:border-red-400 hover:shadow-md hover:bg-red-100',
+                  title: 'text-red-700',
+                  desc: 'text-red-500'
+                },
+                primary: {
+                  btn: 'bg-blue-50 border-blue-200 hover:border-blue-400 hover:shadow-md hover:bg-blue-100',
+                  title: 'text-blue-700',
+                  desc: 'text-blue-500'
+                },
+                success: {
+                  btn: 'bg-green-50 border-green-200 hover:border-green-400 hover:shadow-md hover:bg-green-100',
+                  title: 'text-green-700',
+                  desc: 'text-green-500'
+                }
+              } as const;
+
+              type ThemeKey = keyof typeof themeStyles;
+              const theme = (action.theme ?? 'default') as ThemeKey;
+              const style = themeStyles[theme];
+
               return (
               <button 
                 key={action.id}
@@ -145,15 +171,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                 className={`p-2 rounded-lg border transition-all text-left group relative overflow-hidden h-auto
                   ${gameState.actedThisWeek 
                     ? 'bg-slate-50 border-slate-100 opacity-50 cursor-not-allowed' 
-                    : isBankruptcy
-                      ? 'bg-red-50 border-red-200 hover:border-red-400 hover:shadow-md hover:bg-red-100'
-                      : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md'}`}
+                    : style.btn}`}
               >
                 <div>
-                  <div className={`font-bold text-sm leading-tight mb-1 ${isBankruptcy ? 'text-red-700' : 'text-slate-800'}`}>
+                  <div className={`font-bold text-sm leading-tight mb-1 ${style.title}`}>
                     {action.name}
                   </div>
-                  <div className={`text-xs line-clamp-2 ${isBankruptcy ? 'text-red-500' : 'text-slate-500'}`}>
+                  <div className={`text-xs line-clamp-2 ${style.desc}`}>
                     {action.desc}
                   </div>
                 </div>

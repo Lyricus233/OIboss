@@ -85,6 +85,14 @@ export interface CalendarEvent {
   type: 'CONTEST' | 'EVENT' | 'HOLIDAY';
   description: string;
   handler?: (state: GameState) => Partial<GameState>;
+  stages?: {
+    name: string;
+    description?: string;
+    problems?: {
+      difficulty: number; // 1-10
+      quality: number; // 1-10
+    }[];
+  }[];
 }
 
 export interface EventOption {
@@ -126,4 +134,5 @@ export interface AgencyAction {
   desc: string;
   cost: number;
   outcomes?: ActionOutcome[];
+  theme?: 'default' | 'danger' | 'primary' | 'success';
 }

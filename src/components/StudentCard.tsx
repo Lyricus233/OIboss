@@ -100,12 +100,14 @@ const StudentCard: React.FC<StudentCardProps> = ({ student, onRename, onDismiss 
            <div className="flex-1 bg-slate-100 h-1.5 rounded-full overflow-hidden">
              <div className={`h-full rounded-full ${student.mood < 40 ? 'bg-red-400' : 'bg-emerald-400'}`} style={{ width: `${student.mood}%` }} />
            </div>
+           <span className="text-[10px] text-slate-500 w-6 text-right">{student.mood.toFixed(0)}</span>
         </div>
         <div className="flex items-center gap-2">
            <span className={`text-[10px] w-6 ${student.stress > 80 ? 'text-red-500 font-bold' : 'text-slate-400'}`}>压力</span>
            <div className="flex-1 bg-slate-100 h-1.5 rounded-full overflow-hidden">
              <div className={`h-full rounded-full ${student.stress > 80 ? 'bg-red-500' : 'bg-blue-300'}`} style={{ width: `${student.stress}%` }} />
            </div>
+           <span className="text-[10px] text-slate-500 w-6 text-right">{student.stress.toFixed(0)}</span>
         </div>
       </div>
 

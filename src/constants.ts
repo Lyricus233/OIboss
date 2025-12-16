@@ -1,4 +1,3 @@
-
 import { CalendarEvent } from './types';
 
 export const PROVINCES = [
@@ -163,27 +162,93 @@ export const CALENDAR_EVENTS: Record<number, CalendarEvent> = {
   },
   16: {
     week: 16,
-    name: 'WC (冬令营)',
-    type: 'EVENT',
-    description: '寒假期间的集训与交流。',
+    name: 'NOIWC',
+    type: 'CONTEST',
+    description: '全国青少年信息学奥林匹克竞赛冬令营',
   },
   20: {
     week: 20,
     name: '省队选拔',
     type: 'CONTEST',
-    description: '决定谁能代表省份参加 NOI。',
+    description: '选拔各省参加全国赛的代表队',
+    stages: [
+      { 
+        name: 'Day 1', 
+        description: '第一场', 
+        problems: [
+          { difficulty: 6, quality: 7 },
+          { difficulty: 7, quality: 7 },
+          { difficulty: 8, quality: 8 }
+        ]
+      },
+      { 
+        name: 'Day 2', 
+        description: '第二场', 
+        problems: [
+          { difficulty: 7, quality: 7 },
+          { difficulty: 8, quality: 8 },
+          { difficulty: 9, quality: 6 }
+        ]
+      }
+    ]
   },
   25: {
     week: 25,
-    name: 'NOI (国赛)',
+    name: 'APIO',
     type: 'CONTEST',
-    description: '全国决赛，金牌保送清北！',
+    description: '亚太地区信息学奥林匹克竞赛',
   },
   30: {
     week: 30,
+    name: 'NOI',
+    type: 'CONTEST',
+    description: '全国信息学奥林匹克竞赛',
+    stages: [
+      { 
+        name: 'Day 1', 
+        description: '笔试 + 第一场上机', 
+        problems: [
+          { difficulty: 7, quality: 9 },
+          { difficulty: 8, quality: 9 },
+          { difficulty: 9, quality: 9 }
+        ]
+      },
+      { 
+        name: 'Day 2', 
+        description: '第二场上机', 
+        problems: [
+          { difficulty: 8, quality: 9 },
+          { difficulty: 9, quality: 9 },
+          { difficulty: 10, quality: 8 }
+        ]
+      }
+    ]
+  },
+  35: {
+    week: 35,
     name: 'CTS (国家队选拔)',
     type: 'CONTEST',
-    description: '选拔国家队成员。',
+    description: '选拔国家队成员，题目难度极高。',
+    stages: [
+      { 
+        name: 'Day 1', 
+        description: '第一场测试', 
+        problems: [
+          { difficulty: 9, quality: 8 },
+          { difficulty: 10, quality: 8 },
+          { difficulty: 10, quality: 7 }
+        ]
+      },
+      { 
+        name: 'Day 2', 
+        description: '第二场测试', 
+        problems: [
+          { difficulty: 9, quality: 8 },
+          { difficulty: 10, quality: 8 },
+          { difficulty: 10, quality: 6 }
+        ]
+      }
+    ]
   }
 };
 
@@ -244,8 +309,8 @@ export const AGENCY_ACTIONS = [
   },
   {
     id: "rest",
-    name: "给自己放一天假",
-    desc: "不看家长群，不回消息，摸鱼一天。",
+    name: "给自己放一周假",
+    desc: "不看家长群，不回消息，休息一周。",
     cost: 0,
     outcomes: [
       { weight: 50, description: "久违的宁静，身心舒畅。", effects: { bossStress: -15, reputation: -1 }, type: 'success' },
@@ -253,11 +318,28 @@ export const AGENCY_ACTIONS = [
     ]
   },
   {
+    id: "train",
+    name: "安排专项训练",
+    desc: "制定本周的训练计划，在提升能力和控制压力之间寻找平衡。",
+    cost: 0,
+    outcomes: [],
+    theme: 'primary'
+  },
+  {
+    id: "relax",
+    name: "组织团建活动",
+    desc: "带学生和教练出去放松一下，劳逸结合才能更好出成绩。",
+    cost: 0,
+    outcomes: [],
+    theme: 'success'
+  },
+  {
     id: "bankruptcy",
     name: "申请破产清算",
     desc: "实在撑不下去了，遣散员工，关门大吉。",
     cost: 0,
-    outcomes: []
+    outcomes: [],
+    theme: 'danger'
   },
 ];
 

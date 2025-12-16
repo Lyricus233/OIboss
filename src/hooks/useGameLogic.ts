@@ -10,7 +10,8 @@ import {
   FACILITY_CONFIG,
   WEEKLY_RENT,
   PROVINCES,
-  INITIAL_CASH
+  INITIAL_CASH,
+  CALENDAR_EVENTS
 } from '../constants';
 
 export const generateStudent = (id: string, tier: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' = 'BEGINNER', customName?: string, existingNames: Set<string> = new Set(), provinceId?: string): Student => {
@@ -269,11 +270,251 @@ export const useGameLogic = () => {
     s.potentialStudents = Math.max(0, s.potentialStudents);
   };
 
-  const handleActionClick = (actionId: string) => {
-    if (gameState.status !== 'PLAYING' || gameState.actedThisWeek) return;
+  const executeTraining = (intensity: 'LIGHT' | 'STANDARD' | 'INTENSE' | 'MOCK') => {
+    let s = { ...gameState };
+    s.status = 'PLAYING';
+    s.modalContent = null;
+    
+    let cost = 0;
+    let logMsg = "";
+    let logType: LogType = 'info';
 
-    const s = { ...gameState };
-    const act = AGENCY_ACTIONS.find((a) => a.id === actionId);
+    if (intensity === 'LIGHT') {
+        cost = 0;
+        logMsg = "本周学生自行补题，效果一般但压力稍降。";
+        logType = 'success';
+    } else if (intensity === 'STANDARD') {
+        cost = 2000;
+        logMsg = "本周进行了常规训练，稳扎稳打，循序渐进。";
+    } else if (intensity === 'INTENSE') {
+        cost = 5000;
+        logMsg = "本周进行了魔鬼集训，效果显著但压力山大！";
+        logType = 'warning';
+    } else if (intensity === 'MOCK') {
+        cost = 3000;
+        logMsg = "本周组织了全真模拟赛，检验了实战能力。";
+    }
+
+    if (s.cash < cost) {
+        addNotification(s, "资金不足，无法进行该强度的训练！", 'error');
+        setGameState(s);
+        return;
+    }
+    s.cash -= cost;
+
+    let totalAbilityGain = 0;
+
+    s.students.forEach(st => {
+        let abilityGain = 0;
+        let stressChange = 0;
+        let moodChange = 0;
+        const tags = st.tags || [];
+
+        if (intensity === 'LIGHT') {
+            abilityGain = 0.2;
+            stressChange = -8;
+            moodChange = 5;
+            if (tags.includes('摸鱼')) { stressChange -= 5; moodChange += 5; }
+            if (tags.includes('卷王')) { stressChange += 5; moodChange -= 5; }
+        } else if (intensity === 'STANDARD') {
+            abilityGain = 0.8;
+            stressChange = 3;
+        } else if (intensity === 'INTENSE') {
+            abilityGain = 1.5;
+            stressChange = 12;
+            if (tags.includes('卷王')) abilityGain += 0.5;
+            if (tags.includes('摸鱼')) { stressChange += 10; moodChange -= 10; }
+            if (tags.includes('玻璃心')) { stressChange += 5; }
+        } else if (intensity === 'MOCK') {
+            abilityGain = 0.6;
+            stressChange = 6;
+            if (tags.includes('考霸')) abilityGain += 0.8;
+            if (tags.includes('手速怪')) abilityGain += 0.5;
+            if (tags.includes('大心脏')) stressChange -= 2;
+        }
+
+        // Apply changes
+        st.ability = Math.min(100, st.ability + abilityGain);
+        st.stress = Math.max(0, st.stress + stressChange);
+        st.mood = Math.max(0, Math.min(100, st.mood + moodChange));
+        
+        totalAbilityGain += abilityGain;
+    });
+
+    addLog(s, logMsg, logType);
+    
+    if (s.students.length > 0) {
+       const avgGain = (totalAbilityGain / s.students.length).toFixed(1);
+       addLog(s, `全员平均能力提升了 ${avgGain} 点。`, 'info');
+    }
+
+    s.actedThisWeek = true;
+    processEndWeekLogic(s);
+  };
+
+  const executeRelaxation = (type: 'MOVIE' | 'DINNER' | 'TRAVEl' | 'FREE') => {
+    let s = { ...gameState };
+    s.status = 'PLAYING';
+    s.modalContent = null;
+    
+    let cost = 0;
+    let logMsg = "";
+    let logType: LogType = 'success';
+
+    if (type === 'MOVIE') {
+        cost = 500;
+        logMsg = "大家一起去看了场电影，心情放松了不少。";
+    } else if (type === 'DINNER') {
+        cost = 2000;
+        logMsg = "组织了一次丰盛的聚餐，大家边吃边聊，气氛融洽。";
+    } else if (type === 'TRAVEl') {
+        cost = 5000;
+        logMsg = "集体外出旅游，所有压力都释放了！";
+    } else if (type === 'FREE') {
+        cost = 0;
+        logMsg = "本周没有安排训练，让大家自由支配时间休息。";
+        logType = 'info';
+    }
+
+    if (s.cash < cost) {
+        addNotification(s, "资金不足，无法进行该活动！", 'error');
+        setGameState(s);
+        return;
+    }
+    s.cash -= cost;
+
+    let coachMoraleGain = 0;
+    if (type === 'MOVIE') coachMoraleGain = 2;
+    if (type === 'DINNER') coachMoraleGain = 5;
+    if (type === 'TRAVEl') coachMoraleGain = 10;
+    if (type === 'FREE') coachMoraleGain = 2;
+    
+    s.coachMorale = Math.min(100, s.coachMorale + coachMoraleGain);
+    s.bossStress = Math.max(0, s.bossStress - coachMoraleGain);
+
+    let totalMoodGain = 0;
+
+    s.students.forEach(st => {
+        let moodGain = 0;
+        let stressLoss = 0;
+        const tags = st.tags || [];
+
+        if (type === 'MOVIE') {
+            moodGain = 5 + Math.random() * 5;
+            stressLoss = 5 + Math.random() * 5;
+            if (tags.includes('社恐')) { moodGain += 2; } 
+            if (tags.includes('迟钝')) { moodGain += 2; }
+        } else if (type === 'DINNER') {
+            moodGain = 10 + Math.random() * 10;
+            stressLoss = 8 + Math.random() * 8;
+            if (tags.includes('社牛')) { moodGain += 10; stressLoss += 5; }
+            if (tags.includes('活泼')) { moodGain += 5; }
+        } else if (type === 'TRAVEl') {
+            moodGain = 20 + Math.random() * 15;
+            stressLoss = 20 + Math.random() * 10;
+            if (tags.includes('活泼')) { moodGain += 10; }
+            if (tags.includes('社牛')) { moodGain += 5; }
+            if (tags.includes('玻璃心')) { stressLoss += 10; }
+        } else if (type === 'FREE') {
+            moodGain = 3 + Math.random() * 5;
+            stressLoss = 3 + Math.random() * 5;
+            if (tags.includes('摸鱼')) { moodGain += 15; stressLoss += 10; }
+            if (tags.includes('卷王')) { moodGain -= 5; stressLoss -= 5; } 
+        }
+
+        st.mood = Math.min(100, st.mood + moodGain);
+        st.stress = Math.max(0, st.stress - stressLoss);
+        
+        totalMoodGain += moodGain;
+    });
+
+    addLog(s, logMsg, logType);
+    
+    if (s.students.length > 0) {
+       const avgGain = (totalMoodGain / s.students.length).toFixed(1);
+       addLog(s, `全员平均心情提升了 ${avgGain} 点，教练士气 +${coachMoraleGain}。`, 'success');
+    }
+
+    s.actedThisWeek = true;
+    processEndWeekLogic(s);
+  };
+
+  const handleActionClick = (actionId: string) => {
+    if (gameState.status !== 'PLAYING') return;
+
+    if (actionId === 'train') {
+      setGameState(prev => ({
+          ...prev,
+          status: 'MODAL',
+          modalContent: {
+              type: 'CONFIRM',
+              title: '制定训练计划',
+              description: '请选择本周的训练强度与侧重点。不同的训练方式会对学生的能力增长、压力和心情产生不同影响。',
+              options: [
+                  {
+                      label: '自行补题 (免费)',
+                      action: () => executeTraining('LIGHT')
+                  },
+                  {
+                      label: '常规训练 (-2000)',
+                      action: () => executeTraining('STANDARD')
+                  },
+                  {
+                      label: '魔鬼集训 (-5000)',
+                      action: () => executeTraining('INTENSE'),
+                      isDanger: true
+                  },
+                  {
+                      label: '全真模拟 (-3000)',
+                      action: () => executeTraining('MOCK')
+                  },
+                  {
+                      label: '取消',
+                      action: () => setGameState(p => ({ ...p, status: 'PLAYING', modalContent: null }))
+                  }
+              ]
+          }
+      }));
+      return;
+    }
+
+    if (actionId === 'relax') {
+      setGameState(prev => ({
+          ...prev,
+          status: 'MODAL',
+          modalContent: {
+              type: 'CONFIRM',
+              title: '组织团建活动',
+              description: '选择一种方式让大家放松身心，恢复状态。',
+              options: [
+                  {
+                      label: '自由活动 (免费)',
+                      action: () => executeRelaxation('FREE')
+                  },
+                  {
+                      label: '集体观影 (-500)',
+                      action: () => executeRelaxation('MOVIE')
+                  },
+                  {
+                      label: '聚餐团建 (-2000)',
+                      action: () => executeRelaxation('DINNER')
+                  },
+                  {
+                      label: '外出旅游 (-5000)',
+                      action: () => executeRelaxation('TRAVEl')
+                  },
+                  {
+                      label: '取消',
+                      action: () => setGameState(p => ({ ...p, status: 'PLAYING', modalContent: null }))
+                  }
+              ]
+          }
+      }));
+      return;
+    }
+
+    let s = { ...gameState };
+    const act = AGENCY_ACTIONS.find(a => a.id === actionId);
     if (!act) return;
 
     if (act.id === 'bankruptcy') {
@@ -340,6 +581,53 @@ export const useGameLogic = () => {
       }
 
       applyEffects(s, selectedOutcome.effects);
+
+      if (act.id === 'squeeze') {
+        let totalAbilityGain = 0;
+        s.students.forEach(st => {
+           const tags = st.tags || [];
+           
+           // Random base values
+           let abilityGain = 0.5 + Math.random() * 0.8; // 0.5 - 1.3
+           let stressGain = 4 + Math.random() * 6; // 4 - 10
+           let moodLoss = 4 + Math.random() * 6; // 4 - 10
+
+           // Tag modifiers
+           if (tags.includes('卷王')) {
+               stressGain *= 1.4;
+               abilityGain *= 1.2;
+           }
+           if (tags.includes('摸鱼')) {
+               stressGain *= 0.6;
+               abilityGain *= 0.8;
+               moodLoss *= 0.8;
+           }
+           if (tags.includes('玻璃心')) {
+               stressGain *= 1.4;
+               moodLoss *= 1.2;
+           }
+           if (tags.includes('迟钝')) {
+               stressGain *= 0.5;
+           }
+           if (tags.includes('大心脏')) {
+               stressGain *= 0.8;
+           }
+           if (tags.includes('活泼')) {
+               moodLoss *= 0.7;
+           }
+
+           st.ability = Math.min(100, st.ability + abilityGain);
+           st.stress = Math.max(0, st.stress + stressGain);
+           st.mood = Math.max(0, st.mood - moodLoss);
+           
+           totalAbilityGain += abilityGain;
+        });
+        
+        if (s.students.length > 0) {
+            const avgGain = (totalAbilityGain / s.students.length).toFixed(1);
+            addLog(s, `高强度排课让学生们也被迫加练，平均能力提升 ${avgGain}，但压力和心情受到了影响。`, 'warning');
+        }
+      }
 
       const parts = [];
       const e = selectedOutcome.effects as any;
@@ -533,7 +821,7 @@ export const useGameLogic = () => {
       cost += 2000;
     }
     if (s.bossStress > 80) {
-      s.reputation -= 0.5;
+      s.reputation -= 1;
     }
 
     const netIncome = tuition - cost;
@@ -582,15 +870,10 @@ export const useGameLogic = () => {
   };
 
   const simulateContestIfAny = (s: GameState) => {
-    const phase = s.totalWeeks % 52;
-    const interestingPhases = [10, 20, 30, 40];
-    if (!interestingPhases.includes(phase)) return;
+    const event = CALENDAR_EVENTS[s.week];
+    if (!event || event.type !== 'CONTEST') return;
 
-    let name = "";
-    if (phase === 10) name = "CSP-S 系列测评";
-    if (phase === 20) name = "NOIP 联赛";
-    if (phase === 30) name = "省选";
-    if (phase === 40) name = "NOI 决战";
+    const name = event.name;
 
     const topStudents = [...s.students].sort((a, b) => b.ability - a.ability).slice(0, 5);
     
@@ -604,7 +887,6 @@ export const useGameLogic = () => {
         let luckBonus = 0;
         let contestBonus = 0;
 
-        // Helper to get effect value safely
         const getEffectValue = (tags: string[], tagName: string, key: string, defaultValue: number = 0) => {
           if (!tags.includes(tagName)) return defaultValue;
           const tag = TAGS.find(t => t.name === tagName);
@@ -615,7 +897,6 @@ export const useGameLogic = () => {
           teamAbilitySum += st.ability;
           const tags = st.tags || [];
           
-          // Use effect values
           if (tags.includes('大心脏')) stabilityBonus += (getEffectValue(tags, '大心脏', 'stability', 1.2) - 1) * 25; // 1.2 -> +5
           if (tags.includes('领袖')) stabilityBonus += (getEffectValue(tags, '领袖', 'teamStability', 1.2) - 1) * 40; // 1.2 -> +8
           if (tags.includes('锦鲤')) luckBonus += (getEffectValue(tags, '锦鲤', 'luck', 1.5) - 1) * 20; // 1.5 -> +10
@@ -744,7 +1025,7 @@ export const useGameLogic = () => {
 
     s.week += 1;
     s.totalWeeks += 1;
-    if (s.week > 30) {
+    if (s.week > 48) {
       s.week = 1;
       s.year += 1;
       addLog(s, `新的赛季开始了，机构进入第 ${s.year} 赛季。`, "success");
@@ -758,6 +1039,15 @@ export const useGameLogic = () => {
       cash: s.cash, 
       reputation: s.reputation 
     }];
+
+    const projectedTuition = s.students.reduce((sum, st) => sum + calculateTuition(st), 0);
+    const projectedCost = s.fixedCost + (s.coachMorale < 50 ? 2000 : 0);
+    
+    if (s.cash + projectedTuition < projectedCost) {
+        addNotification(s, "警告：预计下周资金将不足以支付房租！请尽快筹集资金！", 'error');
+    } else if (s.cash < projectedCost) {
+        addNotification(s, "提醒：当前现金不足以支付下周房租，请确保本周有足够的学费收入。", 'warning');
+    }
 
     setGameState(s);
   };
@@ -793,8 +1083,11 @@ export const useGameLogic = () => {
 
     s.coachLevel += 1;
     addLog(s, `教练等级提升至 Lv.${s.coachLevel}，花费 ¥${cost.toLocaleString()}`, 'success');
+    addLog(s, `教练外出培训，本周跳过。`, 'warning');
     
     setGameState(s);
+
+    endWeek();
   };
 
   const upgradeFacility = () => {

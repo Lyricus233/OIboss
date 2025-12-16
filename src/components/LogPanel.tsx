@@ -16,8 +16,9 @@ const LogPanel: React.FC<LogPanelProps> = ({ gameState }) => {
   }, [gameState.history]);
 
   const rent = gameState.fixedCost;
+  const moralePenalty = gameState.coachMorale < 50 ? 2000 : 0;
   const totalTuition = gameState.students.reduce((sum, s) => sum + calculateTuition(s), 0);
-  const netIncome = totalTuition - rent;
+  const netIncome = totalTuition - rent - moralePenalty;
 
   return (
     <div className="col-span-3 flex flex-col gap-3 overflow-hidden h-full">
@@ -33,6 +34,12 @@ const LogPanel: React.FC<LogPanelProps> = ({ gameState }) => {
               <span className="text-slate-500">房租</span>
               <span className="text-red-500 font-mono">-{formatMoney(rent)}</span>
            </div>
+           {moralePenalty > 0 && (
+             <div className="flex justify-between">
+                <span className="text-slate-500">士气低落损耗</span>
+                <span className="text-red-500 font-mono">-{formatMoney(moralePenalty)}</span>
+             </div>
+           )}
            <div className="border-t border-slate-100 pt-1 mt-1 flex justify-between font-bold">
               <span>净利</span>
               <span className={netIncome >= 0 ? 'text-emerald-600' : 'text-red-500'}>
