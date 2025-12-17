@@ -1018,9 +1018,9 @@ export const useGameLogic = () => {
     handleRandomEvent(s);
 
     if (!s.actedThisWeek) {
-      s.bossStress += 1;
+      s.bossStress += 2;
     } else {
-      s.bossStress += 0.5;
+      s.bossStress += 1;
     }
 
     s.week += 1;
@@ -1084,10 +1084,9 @@ export const useGameLogic = () => {
     s.coachLevel += 1;
     addLog(s, `教练等级提升至 Lv.${s.coachLevel}，花费 ¥${cost.toLocaleString()}`, 'success');
     addLog(s, `教练外出培训，本周跳过。`, 'warning');
-    
-    setGameState(s);
 
-    endWeek();
+    s.actedThisWeek = true;
+    processEndWeekLogic(s);
   };
 
   const upgradeFacility = () => {
