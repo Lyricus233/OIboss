@@ -148,7 +148,7 @@ export const useGameLogic = () => {
         console.log(`[Cheat] Set reputation to ${safe}.`);
       },
       setCoachLevel: (level: number) => {
-        const safe = clamp(Math.floor(level), 1, 10);
+        const safe = clamp(Math.floor(level), 1, 7);
         setGameState((prev) => ({ ...prev, coachLevel: safe }));
         console.log(`[Cheat] Set coach level to ${safe}.`);
       },
