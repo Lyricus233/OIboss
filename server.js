@@ -30,6 +30,23 @@ if (!apiKey) {
   process.exit(1);
 }
 
+function preprocessMessages(messages) {
+  return messages.map((msg) => {
+    if (msg.role === 'assistant') {
+      try {
+        JSON.parse(msg.content);
+        return msg;
+      } catch (e) {
+        return {
+          ...msg,
+          content: JSON.stringify({ reply: msg.content, is_finished: false, result: null }),
+        };
+      }
+    }
+    return msg;
+  });
+}
+
 const openai = new OpenAI({
   baseURL: 'https://api.deepseek.com',
   apiKey: apiKey,
@@ -50,13 +67,20 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'User message exceeds 100 characters limit' });
     }
 
+    const cleanedMessages = preprocessMessages(messages);
+    if (cleanedMessages[0].role === 'system') {
+      cleanedMessages[0].content +=
+        '\nIMPORTANT: You must ONLY output a valid JSON object. Ignore any non-JSON formats in previous conversation history.';
+    }
+
     const completion = await openai.chat.completions.create({
-      messages: messages,
+      messages: cleanedMessages,
       model: 'deepseek-chat',
-      temperature: 0.7,
+      temperature: 0.5,
       response_format: { type: 'json_object' },
     });
     const content = completion.choices[0].message.content || '';
+    console.log('Original content: ', content);
     res.json({ content });
   } catch (error) {
     console.error('Error calling DeepSeek:', error);

@@ -54,7 +54,7 @@ const NotificationContainer: React.FC<NotificationContainerProps> = ({
   onRemove,
 }) => {
   return (
-    <div className="pointer-events-none fixed top-4 right-4 z-[100] flex flex-col gap-2">
+    <div className="pointer-events-none fixed top-4 right-4 z-100 flex flex-col gap-2">
       <div className="pointer-events-auto flex flex-col gap-2">
         {notifications.map((note) => (
           <NotificationItem key={note.id} notification={note} onRemove={onRemove} />

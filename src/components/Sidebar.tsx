@@ -61,7 +61,7 @@ const Sidebar: React.FC<SidebarProps> = ({ gameState, onRename, onDismiss }) => 
 
   return (
     <div className="col-span-3 flex h-full min-h-0 flex-col gap-3 overflow-hidden">
-      <div className="flex-shrink-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
         <h2 className="mb-2 flex items-center gap-1 text-sm font-bold tracking-wider text-slate-400 uppercase">
           <Users size={14} /> 学生列表
         </h2>

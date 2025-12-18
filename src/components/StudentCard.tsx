@@ -156,7 +156,7 @@ const StudentCard: React.FC<StudentCardProps> = ({ student, onRename, onDismiss 
 
       {hoveredTag && (
         <div
-          className="pointer-events-none fixed z-[100] w-48 rounded-xl bg-slate-800 p-3 text-xs text-white shadow-xl"
+          className="pointer-events-none fixed z-100 w-48 rounded-xl bg-slate-800 p-3 text-xs text-white shadow-xl"
           style={{
             top: hoveredTag.rect.top - 8,
             left: hoveredTag.rect.left + hoveredTag.rect.width / 2,
@@ -165,7 +165,7 @@ const StudentCard: React.FC<StudentCardProps> = ({ student, onRename, onDismiss 
         >
           <div className="mb-1 text-sm font-bold text-indigo-300">{hoveredTag.config.name}</div>
           <div className="leading-relaxed text-slate-300">{hoveredTag.config.desc}</div>
-          <div className="absolute bottom-[-6px] left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 bg-slate-800"></div>
+          <div className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 bg-slate-800"></div>
         </div>
       )}
     </div>

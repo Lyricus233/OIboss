@@ -34,7 +34,7 @@ const App: React.FC = () => {
   const [showRecruitModal, setShowRecruitModal] = useState(false);
 
   const Footer = () => (
-    <footer className="relative z-[60] shrink-0 border-t border-slate-200 bg-slate-100 py-1 text-center text-xs text-slate-500">
+    <footer className="relative z-60 shrink-0 border-t border-slate-200 bg-slate-100 py-1 text-center text-xs text-slate-500">
       <a
         href="https://github.com/Lyricus233/OIboss"
         target="_blank"

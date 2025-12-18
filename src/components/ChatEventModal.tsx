@@ -89,10 +89,10 @@ const ChatEventModal: React.FC<ChatEventModalProps> = ({
   };
 
   return (
-    <div className="animate-in fade-in fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-200">
-      <div className="flex h-[600px] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+    <div className="animate-in fade-in fixed inset-0 z-70 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-200">
+      <div className="flex h-150 w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-white">
+        <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-blue-600 to-indigo-600 p-4 text-white">
           <div className="flex items-center gap-2">
             <Bot className="h-6 w-6" />
             <h2 className="text-lg font-bold">{scenario.title}</h2>

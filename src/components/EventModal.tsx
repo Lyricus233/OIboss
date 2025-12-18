@@ -19,7 +19,7 @@ const Modal: React.FC<ModalProps> = ({ config, onOptionSelect, onClose }) => {
       <div className="w-full max-w-md scale-100 transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all">
         {/* Header */}
         <div
-          className={`flex items-center gap-2 p-4 text-white ${isResult ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : ''} ${isEvent ? 'bg-gradient-to-r from-indigo-600 to-purple-600' : ''} ${isAlert ? 'bg-gradient-to-r from-red-600 to-pink-600' : ''} ${isConfirm ? 'bg-gradient-to-r from-slate-600 to-slate-800' : ''} `}
+          className={`flex items-center gap-2 p-4 text-white ${isResult ? 'bg-linear-to-r from-yellow-500 to-orange-500' : ''} ${isEvent ? 'bg-linear-to-r from-indigo-600 to-purple-600' : ''} ${isAlert ? 'bg-linear-to-r from-red-600 to-pink-600' : ''} ${isConfirm ? 'bg-linear-to-r from-slate-600 to-slate-800' : ''} `}
         >
           {isResult && <Trophy className="h-6 w-6" />}
           {isEvent && <CheckCircle className="h-6 w-6" />}

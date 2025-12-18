@@ -2,72 +2,99 @@
 const OpenAI = require('openai');
 
 const ALLOWED_DOMAINS = (process.env.ALLOWED_DOMAINS || '')
-    .split(',')
-    .map(domain => domain.trim())
-    .filter(domain => domain);
+  .split(',')
+  .map((domain) => domain.trim())
+  .filter((domain) => domain);
+
+function preprocessMessages(messages) {
+  return messages.map((msg) => {
+    if (msg.role === 'assistant') {
+      try {
+        JSON.parse(msg.content);
+        return msg;
+      } catch (e) {
+        return {
+          ...msg,
+          content: JSON.stringify({ reply: msg.content, is_finished: false, result: null }),
+        };
+      }
+    }
+    return msg;
+  });
+}
 
 module.exports = async (req, res) => {
-    const forwarded = req.headers['x-forwarded-for'];
-    const ip = forwarded ? forwarded.split(/, /)[0] : req.connection.remoteAddress;
+  const forwarded = req.headers['x-forwarded-for'];
+  const ip = forwarded ? forwarded.split(/, /)[0] : req.connection.remoteAddress;
 
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const referer = req.headers.referer || req.headers.origin;
+  if (referer) {
+    const isAllowed = ALLOWED_DOMAINS.some((domain) => referer.startsWith(domain));
+    if (!isAllowed) {
+      console.warn(`Blocked unauthorized origin: ${referer} from IP: ${ip}`);
+      return res.status(403).json({ error: 'Forbidden source' });
+    }
+  }
+
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const { messages } = req.body;
+
+  if (!apiKey) {
+    return res.status(500).json({ error: 'API Key not configured' });
+  }
+
+  if (!messages || !Array.isArray(messages)) {
+    return res.status(400).json({ error: 'Invalid messages format' });
+  }
+
+  const hasLongUserMessage = messages.some(
+    (msg) => msg.role === 'user' && typeof msg.content === 'string' && msg.content.length > 100
+  );
+
+  if (hasLongUserMessage) {
+    return res.status(400).json({ error: 'User message exceeds 100 characters limit' });
+  }
+
+  const openai = new OpenAI({
+    baseURL: 'https://api.deepseek.com',
+    apiKey: apiKey,
+  });
+
+  try {
+    console.log(`Processing request from IP: ${ip}, Message count: ${messages.length}`);
+
+    const cleanedMessages = preprocessMessages(messages);
+    if (cleanedMessages[0].role === 'system') {
+      cleanedMessages[0].content +=
+        '\nIMPORTANT: You must ONLY output a valid JSON object. Ignore any non-JSON formats in previous conversation history.';
     }
 
-    const referer = req.headers.referer || req.headers.origin;
-    if (referer) {
-        const isAllowed = ALLOWED_DOMAINS.some(domain => referer.startsWith(domain));
-        if (!isAllowed) {
-            console.warn(`Blocked unauthorized origin: ${referer} from IP: ${ip}`);
-            return res.status(403).json({ error: 'Forbidden source' });
-        }
-    }
-
-    const apiKey = process.env.DEEPSEEK_API_KEY;
-    const { messages } = req.body;
-
-    if (!apiKey) {
-        return res.status(500).json({ error: 'API Key not configured' });
-    }
-
-    if (!messages || !Array.isArray(messages)) {
-        return res.status(400).json({ error: 'Invalid messages format' });
-    }
-
-    const hasLongUserMessage = messages.some(msg =>
-        msg.role === 'user' && typeof msg.content === 'string' && msg.content.length > 100
-    );
-
-    if (hasLongUserMessage) {
-        return res.status(400).json({ error: 'User message exceeds 100 characters limit' });
-    }
-
-    const openai = new OpenAI({
-        baseURL: 'https://api.deepseek.com',
-        apiKey: apiKey,
+    const completion = await openai.chat.completions.create({
+      messages: cleanedMessages,
+      model: 'deepseek-chat',
+      temperature: 0.5,
+      response_format: { type: 'json_object' },
     });
 
-    try {
-        console.log(`Processing request from IP: ${ip}, Message count: ${messages.length}`);
-
-        const completion = await openai.chat.completions.create({
-            messages: messages,
-            model: "deepseek-chat",
-            temperature: 0.7,
-            response_format: { type: 'json_object' }
-        });
-
-        const content = completion.choices[0].message.content || "";
-
-        const usage = completion.usage;
-        console.log(`Success. IP: ${ip}, Tokens: ${usage?.total_tokens || 'unknown'}`);
-
-        res.status(200).json({ content });
-    } catch (error) {
-        console.error(`DeepSeek API Error (IP: ${ip}):`, error.message);
-        if (error.status) {
-            return res.status(error.status).json({ error: error.message });
-        }
-        res.status(500).json({ error: 'Internal Server Error' });
+    const content = completion.choices?.[0]?.message?.content;
+    if (!content || !content.trim()) {
+      console.error('DeepSeek returned empty content. Full object:', JSON.stringify(completion));
+      return res.status(502).json({ error: 'LLM failed to generate JSON content' });
     }
-}
+
+    const usage = completion.usage;
+    console.log(`Success. IP: ${ip}, Tokens: ${usage?.total_tokens || 'unknown'}`);
+
+    res.status(200).json({ content });
+  } catch (error) {
+    console.error(`DeepSeek API Error (IP: ${ip}):`, error.message);
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
