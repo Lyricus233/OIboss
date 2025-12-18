@@ -10,9 +10,9 @@ export interface Student {
   talent: number;
   ability: number; // 综合能力 (0-100)
   mood: number;
-  stress: number; 
+  stress: number;
   tags: string[];
-  cost: number; 
+  cost: number;
 }
 
 export interface GameState {
@@ -21,7 +21,7 @@ export interface GameState {
   bossName: string;
   city: CityTier;
   province: string;
-  
+
   cash: number;
   reputation: number;
   totalMedals: number;
@@ -30,29 +30,29 @@ export interface GameState {
   coachMorale: number;
   bossStress: number;
   studentSatisfaction: number;
-  
+
   potentialStudents: number;
   fixedCost: number;
   maxStudents: number;
-  facilityLevel: number; 
-  
-  week: number; 
+  facilityLevel: number;
+
+  week: number;
   actedThisWeek: boolean;
   currentEvent: RandomEvent | null;
   year: number;
   totalWeeks: number;
 
   students: Student[];
-  
+
   history: LogEntry[];
   statsHistory: { week: number; cash: number; reputation: number }[];
   modalContent: ModalConfig | null;
-  
+
   gameOverReason?: string;
   finalScore?: number;
-  
+
   notifications: Notification[];
-  doneEvents: string[]; 
+  doneEvents: string[];
 }
 
 export interface Notification {
@@ -114,7 +114,7 @@ export interface RandomEvent {
   title: string;
   text: string;
   minWeek: number;
-  type?: 'STANDARD' | 'CHAT'; 
+  type?: 'STANDARD' | 'CHAT';
   unique?: boolean;
   options?: EventOption[]; // for STANDARD type
   chats?: ChatScenario[]; // for CHAT type

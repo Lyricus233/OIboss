@@ -1,4 +1,3 @@
-
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -21,7 +20,7 @@ export const Deepseek = async (messages: ChatMessage[]) => {
     const data = await response.json();
     return data.content;
   } catch (error) {
-    console.error("DeepSeek API Call Failed:", error);
+    console.error('DeepSeek API Call Failed:', error);
     throw error;
   }
 };
@@ -49,9 +48,9 @@ export const conversation = async (history: ChatMessage[]) => {
     "students": number // 学生人数变化 (如退学为 -1)
   }
 }
-`
+`,
   };
 
-  const contextMessages = history.filter(m => m.role !== 'system');
+  const contextMessages = history.filter((m) => m.role !== 'system');
   return Deepseek([evaluationPrompt, ...contextMessages]);
 };

@@ -8,17 +8,21 @@ interface StatsCardProps {
   subValue?: string;
 }
 
-const StatsCard: React.FC<StatsCardProps> = ({ label, value, icon, colorClass = "text-gray-900", subValue }) => {
+const StatsCard: React.FC<StatsCardProps> = ({
+  label,
+  value,
+  icon,
+  colorClass = 'text-gray-900',
+  subValue,
+}) => {
   return (
-    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+    <div className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
       <div>
-        <p className="text-xs text-gray-500 uppercase font-semibold tracking-wider">{label}</p>
-        <p className={`text-xl font-bold mt-1 ${colorClass}`}>{value}</p>
-        {subValue && <p className="text-xs text-gray-400 mt-1">{subValue}</p>}
+        <p className="text-xs font-semibold tracking-wider text-gray-500 uppercase">{label}</p>
+        <p className={`mt-1 text-xl font-bold ${colorClass}`}>{value}</p>
+        {subValue && <p className="mt-1 text-xs text-gray-400">{subValue}</p>}
       </div>
-      <div className="p-3 bg-gray-50 rounded-lg text-gray-600">
-        {icon}
-      </div>
+      <div className="rounded-lg bg-gray-50 p-3 text-gray-600">{icon}</div>
     </div>
   );
 };

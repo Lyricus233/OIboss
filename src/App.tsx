@@ -28,17 +28,17 @@ const App: React.FC = () => {
     dismissStudent,
     renameStudent,
     removeNotification,
-    handleChatEventComplete
+    handleChatEventComplete,
   } = useGameLogic();
 
   const [showRecruitModal, setShowRecruitModal] = useState(false);
 
   const Footer = () => (
-    <footer className="py-1 text-center text-slate-500 text-xs bg-slate-100 border-t border-slate-200 z-[60] relative shrink-0">
-      <a 
-        href="https://github.com/Lyricus233/OIboss" 
-        target="_blank" 
-        className="inline-flex items-center gap-1 hover:text-slate-600 transition-colors"
+    <footer className="relative z-[60] shrink-0 border-t border-slate-200 bg-slate-100 py-1 text-center text-xs text-slate-500">
+      <a
+        href="https://github.com/Lyricus233/OIboss"
+        target="_blank"
+        className="inline-flex items-center gap-1 transition-colors hover:text-slate-600"
       >
         <Github size={12} />
         <span>OI-boss</span>
@@ -49,39 +49,33 @@ const App: React.FC = () => {
   const renderContent = () => {
     if (gameState.status === 'SETUP') {
       return (
-        <SetupScreen 
-          setupForm={setupForm} 
-          setSetupForm={setSetupForm} 
-          startGame={startGame} 
-        />
+        <SetupScreen setupForm={setupForm} setSetupForm={setSetupForm} startGame={startGame} />
       );
     }
 
     if (gameState.status === 'GAME_OVER') {
-      return (
-        <GameOverScreen 
-          gameState={gameState} 
-          onRestart={() => window.location.reload()} 
-        />
-      );
+      return <GameOverScreen gameState={gameState} onRestart={() => window.location.reload()} />;
     }
 
     return (
       <>
         <Header gameState={gameState} />
 
-        <NotificationContainer notifications={gameState.notifications || []} onRemove={removeNotification} />
+        <NotificationContainer
+          notifications={gameState.notifications || []}
+          onRemove={removeNotification}
+        />
 
         {/* Main Grid Layout */}
-        <div className="flex-1 p-3 grid grid-cols-12 gap-3 overflow-hidden">
-          <Sidebar 
-            gameState={gameState} 
-            setGameState={setGameState} 
+        <div className="grid flex-1 grid-cols-12 gap-3 overflow-hidden p-3">
+          <Sidebar
+            gameState={gameState}
+            setGameState={setGameState}
             onRename={renameStudent}
             onDismiss={dismissStudent}
           />
-          
-          <Dashboard 
+
+          <Dashboard
             gameState={gameState}
             handleActionClick={handleActionClick}
             endWeek={endWeek}
@@ -94,7 +88,7 @@ const App: React.FC = () => {
         </div>
 
         {showRecruitModal && (
-          <RecruitModal 
+          <RecruitModal
             gameState={gameState}
             onClose={() => setShowRecruitModal(false)}
             onRecruit={recruitStudent}
@@ -102,57 +96,74 @@ const App: React.FC = () => {
         )}
 
         {gameState.status === 'MODAL' && gameState.modalContent && (
-          <Modal 
-            config={gameState.modalContent} 
+          <Modal
+            config={gameState.modalContent}
             onOptionSelect={(index) => {
               if (gameState.modalContent?.options?.[index]) {
                 gameState.modalContent.options[index].action();
               }
-            }} 
-            onClose={() => setGameState(prev => ({ ...prev, status: 'PLAYING', modalContent: null }))}
+            }}
+            onClose={() =>
+              setGameState((prev) => ({
+                ...prev,
+                status: 'PLAYING',
+                modalContent: null,
+              }))
+            }
           />
         )}
 
-        {gameState.currentEvent && (
-          gameState.currentEvent.type === 'CHAT' && gameState.currentEvent.activeChat ? (
+        {gameState.currentEvent &&
+          (gameState.currentEvent.type === 'CHAT' && gameState.currentEvent.activeChat ? (
             <ChatEventModal
               scenario={gameState.currentEvent.activeChat}
               eventDescription={gameState.currentEvent.text}
-              onClose={() => handleChatEventComplete({ success: false, message: "你放弃了沟通", reward: { reputation: -2 } })}
+              onClose={() =>
+                handleChatEventComplete({
+                  success: false,
+                  message: '你放弃了沟通',
+                  reward: { reputation: -2 },
+                })
+              }
               onComplete={handleChatEventComplete}
-              onError={(msg) => setGameState(prev => ({
-                ...prev,
-                notifications: [...prev.notifications, { id: Date.now().toString(), message: msg, type: 'error' }]
-              }))}
+              onError={(msg) =>
+                setGameState((prev) => ({
+                  ...prev,
+                  notifications: [
+                    ...prev.notifications,
+                    { id: Date.now().toString(), message: msg, type: 'error' },
+                  ],
+                }))
+              }
             />
           ) : (
-            <Modal 
+            <Modal
               config={{
                 type: 'EVENT',
                 title: gameState.currentEvent.title,
                 description: gameState.currentEvent.text,
-                options: gameState.currentEvent.options?.map(opt => ({
+                options: gameState.currentEvent.options?.map((opt) => ({
                   label: opt.label,
-                  action: () => onEventOptionClick(gameState.currentEvent!.id, opt.id)
-                }))
+                  action: () => onEventOptionClick(gameState.currentEvent!.id, opt.id),
+                })),
               }}
               onOptionSelect={(index) => {
                 if (gameState.currentEvent?.options?.[index]) {
-                  onEventOptionClick(gameState.currentEvent.id, gameState.currentEvent.options[index].id);
+                  onEventOptionClick(
+                    gameState.currentEvent.id,
+                    gameState.currentEvent.options[index].id
+                  );
                 }
               }}
             />
-          )
-        )}
+          ))}
       </>
     );
   };
 
   return (
-    <div className="h-screen bg-slate-100 overflow-hidden flex flex-col font-sans text-slate-800">
-      <div className="flex-1 overflow-hidden flex flex-col relative">
-        {renderContent()}
-      </div>
+    <div className="flex h-screen flex-col overflow-hidden bg-slate-100 font-sans text-slate-800">
+      <div className="relative flex flex-1 flex-col overflow-hidden">{renderContent()}</div>
       <Footer />
     </div>
   );

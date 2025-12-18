@@ -11,57 +11,59 @@ app.use(cors());
 app.use(express.json());
 
 app.use((req, res, next) => {
-    if (req.path === '/api/chat' && req.method === 'POST') {
-        const { messages } = req.body;
-        if (!messages || !Array.isArray(messages)) {
-            return res.status(400).json({ error: 'Invalid messages format' });
-        }
+  if (req.path === '/api/chat' && req.method === 'POST') {
+    const { messages } = req.body;
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ error: 'Invalid messages format' });
     }
-    next();
+  }
+  next();
 });
 
 const apiKey = process.env.DEEPSEEK_API_KEY;
 
 if (!apiKey) {
-    console.error('Error: DEEPSEEK_API_KEY is missing in .env file.');
-    console.error('Please create a .env file in the root directory with: DEEPSEEK_API_KEY=<your api key>');
-    process.exit(1);
+  console.error('Error: DEEPSEEK_API_KEY is missing in .env file.');
+  console.error(
+    'Please create a .env file in the root directory with: DEEPSEEK_API_KEY=<your api key>'
+  );
+  process.exit(1);
 }
 
 const openai = new OpenAI({
-    baseURL: 'https://api.deepseek.com',
-    apiKey: apiKey,
+  baseURL: 'https://api.deepseek.com',
+  apiKey: apiKey,
 });
 
 app.post('/api/chat', async (req, res) => {
-    try {
-        const { messages } = req.body;
-        if (!messages) {
-            return res.status(400).json({ error: 'Messages are required' });
-        }
-
-        const hasLongUserMessage = messages.some(msg =>
-            msg.role === 'user' && typeof msg.content === 'string' && msg.content.length > 100
-        );
-
-        if (hasLongUserMessage) {
-            return res.status(400).json({ error: 'User message exceeds 100 characters limit' });
-        }
-
-        const completion = await openai.chat.completions.create({
-            messages: messages,
-            model: "deepseek-chat",
-            temperature: 0.7,
-            response_format: { type: 'json_object' }
-        });
-        const content = completion.choices[0].message.content || "";
-        res.json({ content });
-    } catch (error) {
-        console.error('Error calling DeepSeek:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+  try {
+    const { messages } = req.body;
+    if (!messages) {
+      return res.status(400).json({ error: 'Messages are required' });
     }
+
+    const hasLongUserMessage = messages.some(
+      (msg) => msg.role === 'user' && typeof msg.content === 'string' && msg.content.length > 100
+    );
+
+    if (hasLongUserMessage) {
+      return res.status(400).json({ error: 'User message exceeds 100 characters limit' });
+    }
+
+    const completion = await openai.chat.completions.create({
+      messages: messages,
+      model: 'deepseek-chat',
+      temperature: 0.7,
+      response_format: { type: 'json_object' },
+    });
+    const content = completion.choices[0].message.content || '';
+    res.json({ content });
+  } catch (error) {
+    console.error('Error calling DeepSeek:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 app.listen(port, () => {
-    console.log(`API Server running at http://localhost:${port}`);
+  console.log(`API Server running at http://localhost:${port}`);
 });
