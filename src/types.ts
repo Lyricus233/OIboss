@@ -53,6 +53,8 @@ export interface GameState {
 
   notifications: Notification[];
   doneEvents: string[];
+
+  recentEvents?: { id: string; week: number }[]; // 冷却事件
 }
 
 export interface Notification {

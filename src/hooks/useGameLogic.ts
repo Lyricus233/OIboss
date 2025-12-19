@@ -19,7 +19,8 @@ export const generateStudent = (
   tier: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' = 'BEGINNER',
   customName?: string,
   existingNames: Set<string> = new Set(),
-  provinceId?: string
+  provinceId?: string,
+  forceGenius: boolean = false
 ): Student => {
   let fullName = customName || '';
 
@@ -35,22 +36,37 @@ export const generateStudent = (
 
   const gender = Math.random() > 0.5 ? 'M' : 'F';
 
-  const cfg = RECRUITMENT_CONFIG[tier];
-  let talent =
-    cfg.talentRange.min + Math.floor(Math.random() * (cfg.talentRange.max - cfg.talentRange.min));
+  const isGenius = forceGenius || Math.random() < 0.005;
 
-  if (provinceId) {
-    const province = PROVINCES.find((p) => p.id === provinceId);
-    if (province && province.buff && province.buff.talent) {
-      talent += province.buff.talent;
+  const cfg = RECRUITMENT_CONFIG[tier];
+  let talent;
+  let ability;
+
+  if (isGenius) {
+    talent = 95 + Math.floor(Math.random() * 6);
+    ability = 80 + Math.floor(Math.random() * 21);
+  } else {
+    talent =
+      cfg.talentRange.min + Math.floor(Math.random() * (cfg.talentRange.max - cfg.talentRange.min));
+
+    if (provinceId) {
+      const province = PROVINCES.find((p) => p.id === provinceId);
+      if (province && province.buff && province.buff.talent) {
+        talent += province.buff.talent;
+      }
     }
+
+    ability =
+      cfg.abilityRange.min +
+      Math.floor(Math.random() * (cfg.abilityRange.max - cfg.abilityRange.min));
   }
 
-  const tags = Math.random() < 0.3 ? [TAGS[Math.floor(Math.random() * TAGS.length)].name] : [];
-
-  const ability =
-    cfg.abilityRange.min +
-    Math.floor(Math.random() * (cfg.abilityRange.max - cfg.abilityRange.min));
+  let tags = [];
+  if (isGenius) {
+    tags = ['天赋怪'];
+  } else {
+    tags = Math.random() < 0.3 ? [TAGS[Math.floor(Math.random() * TAGS.length)].name] : [];
+  }
 
   const score = ability + talent * 0.5;
   const minScore = cfg.abilityRange.min + cfg.talentRange.min * 0.5;
@@ -59,6 +75,10 @@ export const generateStudent = (
   const multiplier = 0.5 + ratio * 1.5;
   let finalCost = Math.round((cfg.cost * multiplier) / 100) * 100;
   finalCost = Math.max(100, finalCost);
+
+  if (isGenius) {
+    finalCost *= 2;
+  }
 
   return {
     id,
@@ -268,6 +288,42 @@ export const useGameLogic = () => {
 
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
+  const formatEffects = (effects: any): string => {
+    if (!effects) return '';
+
+    const parts: string[] = [];
+
+    if (effects.money) parts.push(`资金${effects.money > 0 ? '+' : ''}${effects.money}`);
+    if (effects.reputation)
+      parts.push(`声望${effects.reputation > 0 ? '+' : ''}${effects.reputation}`);
+    if (effects.coachMorale)
+      parts.push(`教练士气${effects.coachMorale > 0 ? '+' : ''}${effects.coachMorale}`);
+    if (effects.studentSatisfaction)
+      parts.push(
+        `满意度${effects.studentSatisfaction > 0 ? '+' : ''}${effects.studentSatisfaction}`
+      );
+    if (effects.bossStress)
+      parts.push(`压力${effects.bossStress > 0 ? '+' : ''}${effects.bossStress}`);
+    if (effects.potentialStudents)
+      parts.push(`潜在生源${effects.potentialStudents > 0 ? '+' : ''}${effects.potentialStudents}`);
+    if (effects.fixedCost)
+      parts.push(`固定成本${effects.fixedCost > 0 ? '+' : ''}${effects.fixedCost}`);
+
+    if (effects.advancedStudents)
+      parts.push(`省队选手${effects.advancedStudents > 0 ? '+' : ''}${effects.advancedStudents}`);
+    if (effects.intermediateStudents)
+      parts.push(
+        `提高组学生${effects.intermediateStudents > 0 ? '+' : ''}${effects.intermediateStudents}`
+      );
+    if (effects.beginnerStudents)
+      parts.push(`普及组学生${effects.beginnerStudents > 0 ? '+' : ''}${effects.beginnerStudents}`);
+    if (effects.students) parts.push(`学生${effects.students > 0 ? '+' : ''}${effects.students}`);
+
+    if (effects.geniusStudent) parts.push(`🌟天赋怪学生+1`);
+
+    return parts.length > 0 ? `「${parts.join('，')}」` : '';
+  };
+
   const applyEffects = (s: GameState, effects: any) => {
     if (!effects) return;
     if (effects.money) s.cash += effects.money;
@@ -275,12 +331,104 @@ export const useGameLogic = () => {
     if (effects.coachMorale) s.coachMorale += effects.coachMorale;
     if (effects.studentSatisfaction) s.studentSatisfaction += effects.studentSatisfaction;
     if (effects.bossStress) s.bossStress += effects.bossStress;
-    if (effects.students) {
-      if (effects.students > 0) {
-        for (let i = 0; i < effects.students; i++) {
+
+    if (effects.geniusStudent) {
+      const geniusStudent = generateStudent(
+        `genius-${s.totalWeeks}`,
+        'ADVANCED',
+        undefined,
+        undefined,
+        s.province,
+        true
+      );
+      s.students.push(geniusStudent);
+      s.history.push({
+        id: `genius-recruit-${s.totalWeeks}`,
+        week: s.totalWeeks,
+        type: 'success',
+        message: `🌟 奇迹发生！你招募到了天赋异禀的 ${geniusStudent.name}（天赋:${geniusStudent.talent}, 能力:${geniusStudent.ability}），他有潜力冲击国家队！`,
+      });
+    }
+
+    if (effects.advancedStudents) {
+      if (effects.advancedStudents > 0) {
+        for (let i = 0; i < effects.advancedStudents; i++) {
           s.students.push(
             generateStudent(
-              `evt-${s.totalWeeks}-${i}`,
+              `evt-adv-${s.totalWeeks}-${i}`,
+              'ADVANCED',
+              undefined,
+              undefined,
+              s.province
+            )
+          );
+        }
+      } else if (effects.advancedStudents < 0) {
+        const toRemove = Math.abs(effects.advancedStudents);
+        const advancedStudents = s.students.filter((st) => st.tier === 'ADVANCED');
+        const removed = Math.min(toRemove, advancedStudents.length);
+        for (let i = 0; i < removed; i++) {
+          const idx = s.students.findIndex((st) => st.tier === 'ADVANCED');
+          if (idx !== -1) s.students.splice(idx, 1);
+        }
+        const remaining = toRemove - removed;
+        if (remaining > 0) {
+          for (let i = 0; i < remaining; i++) {
+            const idx = s.students.findIndex(
+              (st) => st.tier === 'INTERMEDIATE' || st.tier === 'BEGINNER'
+            );
+            if (idx !== -1) s.students.splice(idx, 1);
+          }
+        }
+      }
+    }
+
+    if (effects.intermediateStudents) {
+      if (effects.intermediateStudents > 0) {
+        for (let i = 0; i < effects.intermediateStudents; i++) {
+          s.students.push(
+            generateStudent(
+              `evt-int-${s.totalWeeks}-${i}`,
+              'INTERMEDIATE',
+              undefined,
+              undefined,
+              s.province
+            )
+          );
+        }
+      } else if (effects.intermediateStudents < 0) {
+        const toRemove = Math.abs(effects.intermediateStudents);
+        const intermediateStudents = s.students.filter((st) => st.tier === 'INTERMEDIATE');
+        const removed = Math.min(toRemove, intermediateStudents.length);
+        for (let i = 0; i < removed; i++) {
+          const idx = s.students.findIndex((st) => st.tier === 'INTERMEDIATE');
+          if (idx !== -1) s.students.splice(idx, 1);
+        }
+        let remaining = toRemove - removed;
+        if (remaining > 0) {
+          const beginnerCount = s.students.filter((st) => st.tier === 'BEGINNER').length;
+          const beginnerRemoved = Math.min(remaining, beginnerCount);
+          for (let i = 0; i < beginnerRemoved; i++) {
+            const idx = s.students.findIndex((st) => st.tier === 'BEGINNER');
+            if (idx !== -1) s.students.splice(idx, 1);
+          }
+          remaining -= beginnerRemoved;
+        }
+        if (remaining > 0) {
+          for (let i = 0; i < remaining; i++) {
+            const idx = s.students.findIndex((st) => st.tier === 'ADVANCED');
+            if (idx !== -1) s.students.splice(idx, 1);
+          }
+        }
+      }
+    }
+
+    if (effects.beginnerStudents) {
+      if (effects.beginnerStudents > 0) {
+        for (let i = 0; i < effects.beginnerStudents; i++) {
+          s.students.push(
+            generateStudent(
+              `evt-beg-${s.totalWeeks}-${i}`,
               'BEGINNER',
               undefined,
               undefined,
@@ -288,8 +436,62 @@ export const useGameLogic = () => {
             )
           );
         }
+      } else if (effects.beginnerStudents < 0) {
+        const toRemove = Math.abs(effects.beginnerStudents);
+        const beginnerStudents = s.students.filter((st) => st.tier === 'BEGINNER');
+        const removed = Math.min(toRemove, beginnerStudents.length);
+        for (let i = 0; i < removed; i++) {
+          const idx = s.students.findIndex((st) => st.tier === 'BEGINNER');
+          if (idx !== -1) s.students.splice(idx, 1);
+        }
+        let remaining = toRemove - removed;
+        if (remaining > 0) {
+          const intermediateCount = s.students.filter((st) => st.tier === 'INTERMEDIATE').length;
+          const intermediateRemoved = Math.min(remaining, intermediateCount);
+          for (let i = 0; i < intermediateRemoved; i++) {
+            const idx = s.students.findIndex((st) => st.tier === 'INTERMEDIATE');
+            if (idx !== -1) s.students.splice(idx, 1);
+          }
+          remaining -= intermediateRemoved;
+        }
+        if (remaining > 0) {
+          for (let i = 0; i < remaining; i++) {
+            const idx = s.students.findIndex((st) => st.tier === 'ADVANCED');
+            if (idx !== -1) s.students.splice(idx, 1);
+          }
+        }
+      }
+    }
+
+    if (effects.students) {
+      if (effects.students > 0) {
+        for (let i = 0; i < effects.students; i++) {
+          const tier = Math.random() > 0.4 ? 'INTERMEDIATE' : 'BEGINNER';
+          s.students.push(
+            generateStudent(`evt-${s.totalWeeks}-${i}`, tier, undefined, undefined, s.province)
+          );
+        }
       } else if (effects.students < 0) {
-        s.students.splice(0, Math.abs(effects.students));
+        const toRemove = Math.abs(effects.students);
+        let removed = 0;
+
+        for (let i = 0; i < toRemove && removed < toRemove; i++) {
+          const targetTier = Math.random() > 0.5 ? 'INTERMEDIATE' : 'BEGINNER';
+          const idx = s.students.findIndex((st) => st.tier === targetTier);
+          if (idx !== -1) {
+            s.students.splice(idx, 1);
+            removed++;
+          }
+        }
+
+        if (removed < toRemove) {
+          const remaining = toRemove - removed;
+          for (let i = 0; i < remaining; i++) {
+            if (s.students.length > 0) {
+              s.students.splice(0, 1);
+            }
+          }
+        }
       }
     }
     if (effects.potentialStudents) s.potentialStudents += effects.potentialStudents;
@@ -714,18 +916,9 @@ export const useGameLogic = () => {
         }
       }
 
-      const parts = [];
-      const e = selectedOutcome.effects as any;
-      if (e.money) parts.push(`资金${e.money > 0 ? '+' : ''}${e.money}`);
-      if (e.reputation) parts.push(`声望${e.reputation > 0 ? '+' : ''}${e.reputation}`);
-      if (e.studentSatisfaction)
-        parts.push(`满意度${e.studentSatisfaction > 0 ? '+' : ''}${e.studentSatisfaction}`);
-      if (e.coachMorale) parts.push(`士气${e.coachMorale > 0 ? '+' : ''}${e.coachMorale}`);
-      if (e.bossStress) parts.push(`压力${e.bossStress > 0 ? '+' : ''}${e.bossStress}`);
-      if (e.potentialStudents)
-        parts.push(`潜在生源${e.potentialStudents > 0 ? '+' : ''}${e.potentialStudents}`);
+      applyEffects(s, selectedOutcome.effects);
 
-      const effectStr = parts.length > 0 ? `「${parts.join(' ')}」` : '';
+      const effectStr = formatEffects(selectedOutcome.effects);
       addLog(
         s,
         `${act.name}：${selectedOutcome.description}${effectStr}`,
@@ -735,18 +928,23 @@ export const useGameLogic = () => {
 
     s.actedThisWeek = true;
 
-    // 自动结束本周，直接传入当前状态，避免闭包导致的旧状态覆盖问题
     processEndWeekLogic(s);
   };
 
   const handleRandomEvent = (s: GameState) => {
-    if (Math.random() > 0.35) return;
+    if (Math.random() > 0.25) return;
+
+    if (!s.recentEvents) s.recentEvents = [];
+
+    s.recentEvents = s.recentEvents.filter((re) => s.totalWeeks - re.week < 5);
 
     const available = (RANDOM_EVENTS as any[]).filter((ev) => {
       if (s.totalWeeks < ev.minWeek) return false;
       if (ev.unique && s.doneEvents?.includes(ev.id)) return false;
 
-      // 最多触发 3 次
+      const recentTrigger = s.recentEvents?.find((re) => re.id === ev.id);
+      if (recentTrigger && s.totalWeeks - recentTrigger.week < 5) return false;
+
       if (ev.id === 'parent_chat') {
         const count = s.doneEvents?.filter((id) => id === 'parent_chat').length || 0;
         if (count >= 3) return false;
@@ -770,6 +968,8 @@ export const useGameLogic = () => {
       s.doneEvents = [...(s.doneEvents || []), event.id];
     }
 
+    s.recentEvents = [...(s.recentEvents || []), { id: event.id, week: s.totalWeeks }];
+
     s.currentEvent = eventInstance;
   };
 
@@ -777,26 +977,7 @@ export const useGameLogic = () => {
     const s = { ...gameState };
     s.currentEvent = null;
 
-    let effectText = '';
-    if (result.reward) {
-      const parts = [];
-      if (result.reward.money)
-        parts.push(`资金${result.reward.money > 0 ? '+' : ''}${result.reward.money}`);
-      if (result.reward.reputation)
-        parts.push(`声望${result.reward.reputation > 0 ? '+' : ''}${result.reward.reputation}`);
-      if (result.reward.studentSatisfaction)
-        parts.push(
-          `满意度${result.reward.studentSatisfaction > 0 ? '+' : ''}${result.reward.studentSatisfaction}`
-        );
-      if (result.reward.bossStress)
-        parts.push(`压力${result.reward.bossStress > 0 ? '+' : ''}${result.reward.bossStress}`);
-      if (result.reward.coachMorale)
-        parts.push(`士气${result.reward.coachMorale > 0 ? '+' : ''}${result.reward.coachMorale}`);
-
-      if (parts.length > 0) {
-        effectText = `「${parts.join('，')}」`;
-      }
-    }
+    const effectText = formatEffects(result.reward);
 
     if (result.success) {
       addLog(s, `谈判成功：${result.message}${effectText}`, 'success');
@@ -808,7 +989,11 @@ export const useGameLogic = () => {
       applyEffects(s, result.reward);
     }
 
-    checkGameOver(s);
+    if (checkGameOver(s)) {
+      setGameState(s);
+      return;
+    }
+
     setGameState(s);
   };
 
@@ -834,18 +1019,7 @@ export const useGameLogic = () => {
 
       applyEffects(s, selectedOutcome.effects);
 
-      const parts = [];
-      const e = selectedOutcome.effects as any;
-      if (e.money) parts.push(`资金${e.money > 0 ? '+' : ''}${e.money}`);
-      if (e.reputation) parts.push(`声望${e.reputation > 0 ? '+' : ''}${e.reputation}`);
-      if (e.studentSatisfaction)
-        parts.push(`满意度${e.studentSatisfaction > 0 ? '+' : ''}${e.studentSatisfaction}`);
-      if (e.coachMorale) parts.push(`士气${e.coachMorale > 0 ? '+' : ''}${e.coachMorale}`);
-      if (e.bossStress) parts.push(`压力${e.bossStress > 0 ? '+' : ''}${e.bossStress}`);
-      if (e.potentialStudents)
-        parts.push(`潜在生源${e.potentialStudents > 0 ? '+' : ''}${e.potentialStudents}`);
-
-      const effectStr = parts.length > 0 ? `「${parts.join(' ')}」` : '';
+      const effectStr = formatEffects(selectedOutcome.effects);
       addLog(
         s,
         selectedOutcome.description + effectStr,
@@ -853,11 +1027,17 @@ export const useGameLogic = () => {
       );
     } else {
       applyEffects(s, opt.effects);
-      addLog(s, opt.log, 'success');
+      const effectStr = formatEffects(opt.effects);
+      addLog(s, (opt.log || '') + effectStr, 'success');
     }
 
     s.currentEvent = null;
-    checkGameOver(s);
+
+    if (checkGameOver(s)) {
+      setGameState(s);
+      return;
+    }
+
     setGameState(s);
   };
 
@@ -1032,6 +1212,8 @@ export const useGameLogic = () => {
           contestBonus += (getEffectValue(tags, '手速怪', 'contest', 1.1) - 1) * 30; // 1.1 -> +3
         if (tags.includes('考霸'))
           contestBonus += (getEffectValue(tags, '考霸', 'contest', 1.2) - 1) * 25; // 1.2 -> +5
+        if (tags.includes('天赋怪'))
+          contestBonus += (getEffectValue(tags, '天赋怪', 'contest', 1.3) - 1) * 50; // 1.3 -> +15
 
         if (tags.includes('偏科')) {
           const creativity = getEffectValue(tags, '偏科', 'creativity', 1.3);
@@ -1189,6 +1371,10 @@ export const useGameLogic = () => {
         '提醒：当前现金不足以支付下周房租，请确保本周有足够的学费收入。',
         'warning'
       );
+    }
+
+    if (s.bossStress > 85) {
+      addNotification(s, '提醒：老板压力已达临界，请尽快减压！', 'error');
     }
 
     setGameState(s);
