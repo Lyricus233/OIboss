@@ -620,7 +620,7 @@ export const AGENCY_ACTIONS = [
       {
         weight: 60,
         description: '现场火爆，家长们排队咨询！',
-        effects: { reputation: +5, potentialStudents: +12, bossStress: +5 },
+        effects: { reputation: +5, potentialStudents: +10, bossStress: +5 },
         type: 'success',
       },
       {
@@ -649,7 +649,7 @@ export const AGENCY_ACTIONS = [
         effects: {
           reputation: +5,
           studentSatisfaction: +5,
-          coachMorale: -5,
+          coachMorale: -3,
           bossStress: +8,
         },
         type: 'success',
@@ -672,7 +672,7 @@ export const AGENCY_ACTIONS = [
           reputation: -2,
           studentSatisfaction: -5,
           coachMorale: -8,
-          bossStress: +15,
+          bossStress: +12,
         },
         type: 'danger',
       },
@@ -690,7 +690,7 @@ export const AGENCY_ACTIONS = [
         effects: {
           money: +20000,
           reputation: -2,
-          coachMorale: -8,
+          coachMorale: -5,
           studentSatisfaction: -3,
         },
         type: 'success',
@@ -701,7 +701,7 @@ export const AGENCY_ACTIONS = [
         effects: {
           money: +15000,
           reputation: -4,
-          coachMorale: -10,
+          coachMorale: -8,
           studentSatisfaction: -5,
         },
         type: 'warning',
@@ -712,7 +712,7 @@ export const AGENCY_ACTIONS = [
         effects: {
           money: +5000,
           reputation: -8,
-          coachMorale: -20,
+          coachMorale: -12,
           studentSatisfaction: -10,
         },
         type: 'danger',
@@ -754,13 +754,13 @@ export const AGENCY_ACTIONS = [
       {
         weight: 70,
         description: '教练们士气大振，发誓要带出金牌！',
-        effects: { coachMorale: +15, reputation: +3, bossStress: -5 },
+        effects: { coachMorale: +10, reputation: +3, bossStress: -5 },
         type: 'success',
       },
       {
         weight: 30,
         description: '大家觉得这是理所应当的。',
-        effects: { coachMorale: +8, reputation: +1, bossStress: -3 },
+        effects: { coachMorale: +6, reputation: +1, bossStress: -3 },
         type: 'info',
       },
     ],

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Student } from '../types';
-import { Edit2, DollarSign, Trash2 } from 'lucide-react';
+import { Edit2, DollarSign, Trash2, Mars, Venus } from 'lucide-react';
 import { calculateTuition } from '../hooks/useGameLogic';
 import { TAGS } from '../constants';
 
@@ -54,6 +54,11 @@ const StudentCard: React.FC<StudentCardProps> = ({ student, onRename, onDismiss 
               className="group/name flex cursor-pointer items-center gap-2 text-base font-bold text-slate-700"
               onClick={() => setIsEditing(true)}
             >
+              {student.gender === 'M' ? (
+                <Mars size={12} className="text-slate-400" aria-label="男性" />
+              ) : (
+                <Venus size={12} className="text-slate-400" aria-label="女性" />
+              )}
               {student.name}
               <Edit2 size={12} className="text-slate-400 opacity-0 group-hover/name:opacity-50" />
             </h3>

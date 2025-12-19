@@ -88,7 +88,7 @@ export const generateStudent = (
     talent,
     ability,
     mood: 80,
-    stress: 0,
+    stress: 20,
     tags: tags,
     cost: finalCost,
   };
@@ -326,6 +326,15 @@ export const useGameLogic = () => {
 
   const applyEffects = (s: GameState, effects: any) => {
     if (!effects) return;
+    const adjustPotential = (delta: number) => {
+      const limitedDelta = Math.sign(delta) * Math.min(Math.abs(delta), 15);
+      s.potentialStudents = clamp(s.potentialStudents + limitedDelta, 0, 40);
+    };
+    const enrollStudent = (tier: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED', id: string) => {
+      if (s.students.length >= s.maxStudents) return false;
+      s.students.push(generateStudent(id, tier, undefined, undefined, s.province));
+      return true;
+    };
     if (effects.money) s.cash += effects.money;
     if (effects.reputation) s.reputation += effects.reputation;
     if (effects.coachMorale) s.coachMorale += effects.coachMorale;
@@ -333,35 +342,22 @@ export const useGameLogic = () => {
     if (effects.bossStress) s.bossStress += effects.bossStress;
 
     if (effects.geniusStudent) {
-      const geniusStudent = generateStudent(
-        `genius-${s.totalWeeks}`,
-        'ADVANCED',
-        undefined,
-        undefined,
-        s.province,
-        true
-      );
-      s.students.push(geniusStudent);
-      s.history.push({
-        id: `genius-recruit-${s.totalWeeks}`,
-        week: s.totalWeeks,
-        type: 'success',
-        message: `🌟 奇迹发生！你招募到了天赋异禀的 ${geniusStudent.name}（天赋:${geniusStudent.talent}, 能力:${geniusStudent.ability}），他有潜力冲击国家队！`,
-      });
+      const geniusId = `genius-${s.totalWeeks}-${s.students.length}`;
+      if (enrollStudent('ADVANCED', geniusId)) {
+        const geniusStudent = s.students[s.students.length - 1];
+        s.history.push({
+          id: `genius-recruit-${s.totalWeeks}`,
+          week: s.totalWeeks,
+          type: 'success',
+          message: `🌟 奇迹发生！你招募到了天赋异禀的 ${geniusStudent.name}（天赋:${geniusStudent.talent}, 能力:${geniusStudent.ability}），他有潜力冲击国家队！`,
+        });
+      }
     }
 
     if (effects.advancedStudents) {
       if (effects.advancedStudents > 0) {
         for (let i = 0; i < effects.advancedStudents; i++) {
-          s.students.push(
-            generateStudent(
-              `evt-adv-${s.totalWeeks}-${i}`,
-              'ADVANCED',
-              undefined,
-              undefined,
-              s.province
-            )
-          );
+          if (!enrollStudent('ADVANCED', `evt-adv-${s.totalWeeks}-${i}`)) break;
         }
       } else if (effects.advancedStudents < 0) {
         const toRemove = Math.abs(effects.advancedStudents);
@@ -386,15 +382,7 @@ export const useGameLogic = () => {
     if (effects.intermediateStudents) {
       if (effects.intermediateStudents > 0) {
         for (let i = 0; i < effects.intermediateStudents; i++) {
-          s.students.push(
-            generateStudent(
-              `evt-int-${s.totalWeeks}-${i}`,
-              'INTERMEDIATE',
-              undefined,
-              undefined,
-              s.province
-            )
-          );
+          if (!enrollStudent('INTERMEDIATE', `evt-int-${s.totalWeeks}-${i}`)) break;
         }
       } else if (effects.intermediateStudents < 0) {
         const toRemove = Math.abs(effects.intermediateStudents);
@@ -426,15 +414,7 @@ export const useGameLogic = () => {
     if (effects.beginnerStudents) {
       if (effects.beginnerStudents > 0) {
         for (let i = 0; i < effects.beginnerStudents; i++) {
-          s.students.push(
-            generateStudent(
-              `evt-beg-${s.totalWeeks}-${i}`,
-              'BEGINNER',
-              undefined,
-              undefined,
-              s.province
-            )
-          );
+          if (!enrollStudent('BEGINNER', `evt-beg-${s.totalWeeks}-${i}`)) break;
         }
       } else if (effects.beginnerStudents < 0) {
         const toRemove = Math.abs(effects.beginnerStudents);
@@ -466,10 +446,10 @@ export const useGameLogic = () => {
     if (effects.students) {
       if (effects.students > 0) {
         for (let i = 0; i < effects.students; i++) {
-          const tier = Math.random() > 0.4 ? 'INTERMEDIATE' : 'BEGINNER';
-          s.students.push(
-            generateStudent(`evt-${s.totalWeeks}-${i}`, tier, undefined, undefined, s.province)
-          );
+          const tier: 'BEGINNER' | 'INTERMEDIATE' =
+            Math.random() > 0.4 ? 'INTERMEDIATE' : 'BEGINNER';
+          const label = tier === 'INTERMEDIATE' ? 'int' : 'beg';
+          if (!enrollStudent(tier, `evt-${label}-${s.totalWeeks}-${i}`)) break;
         }
       } else if (effects.students < 0) {
         const toRemove = Math.abs(effects.students);
@@ -494,7 +474,7 @@ export const useGameLogic = () => {
         }
       }
     }
-    if (effects.potentialStudents) s.potentialStudents += effects.potentialStudents;
+    if (effects.potentialStudents) adjustPotential(effects.potentialStudents);
     if (effects.fixedCost) s.fixedCost += effects.fixedCost;
 
     s.reputation = clamp(s.reputation, 0, 100);
@@ -863,8 +843,6 @@ export const useGameLogic = () => {
         }
       }
 
-      applyEffects(s, selectedOutcome.effects);
-
       if (act.id === 'squeeze') {
         let totalAbilityGain = 0;
         s.students.forEach((st) => {
@@ -1142,7 +1120,7 @@ export const useGameLogic = () => {
             )
           );
         }
-        addLog(s, `由于前期运营，本周新增 ${realGained} 名在读学生。`, 'success');
+        addLog(s, `由于前期运营，本周新增 ${realGained} 名普及组学生加入。`, 'success');
       }
 
       if (gained > realGained) {
@@ -1373,8 +1351,12 @@ export const useGameLogic = () => {
       );
     }
 
-    if (s.bossStress > 85) {
-      addNotification(s, '提醒：老板压力已达临界，请尽快减压！', 'error');
+    if (s.bossStress >= 85) {
+      addNotification(s, '警告：老板压力已达临界，请尽快减压！', 'error');
+    }
+
+    if (s.coachMorale <= 20) {
+      addNotification(s, '警告：教练士气过低，请尽快鼓舞士气！', 'error');
     }
 
     setGameState(s);
