@@ -5,7 +5,6 @@ export type LogType = 'success' | 'warning' | 'danger' | 'info';
 export interface Student {
   id: string;
   name: string;
-  gender: 'M' | 'F';
   tier: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   talent: number;
   ability: number; // 综合能力 (0-100)

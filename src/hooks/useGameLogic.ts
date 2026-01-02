@@ -12,7 +12,76 @@ import {
   PROVINCES,
   INITIAL_CASH,
   CALENDAR_EVENTS,
+  REGIONAL_NAMES,
 } from '../constants';
+
+const REPUTATION_MAX = 200;
+
+interface FullNameOptions {
+  provinceId?: string;
+  customName?: string;
+  autoResolveCustom?: boolean;
+}
+
+const generateUniqueFullName = (existingNames: Set<string>, options: FullNameOptions = {}) => {
+  const { provinceId, customName, autoResolveCustom = true } = options;
+  const baseCustom = (customName || '').trim();
+  if (baseCustom) {
+    if (!existingNames.has(baseCustom)) return baseCustom;
+    if (!autoResolveCustom) return null;
+    for (let i = 1; i <= 999; i++) {
+      const candidate = `${baseCustom}${i}`;
+      if (!existingNames.has(candidate)) return candidate;
+    }
+    throw new Error('failed to generate name');
+  }
+
+  let attempts = 0;
+  let fullName = '';
+  do {
+    let surname = '';
+    let name = '';
+
+    if (provinceId && REGIONAL_NAMES[provinceId] && Math.random() < 0.3) {
+      const region = REGIONAL_NAMES[provinceId];
+      if (region.surnames && region.surnames.length > 0) {
+        surname = region.surnames[Math.floor(Math.random() * region.surnames.length)];
+      }
+    }
+
+    if (!surname) {
+      surname = NAMES.surnames[Math.floor(Math.random() * NAMES.surnames.length)];
+    }
+
+    if (provinceId && REGIONAL_NAMES[provinceId] && Math.random() < 0.2) {
+      const region = REGIONAL_NAMES[provinceId];
+      if (region.names && region.names.length > 0) {
+        name = region.names[Math.floor(Math.random() * region.names.length)];
+      }
+    }
+
+    if (!name) {
+      name = NAMES.names[Math.floor(Math.random() * NAMES.names.length)];
+    }
+
+    fullName = surname + name;
+    attempts++;
+  } while (existingNames.has(fullName) && attempts < 100);
+
+  if (!fullName) {
+    fullName = `${NAMES.surnames[Math.floor(Math.random() * NAMES.surnames.length)]}${Math.floor(Math.random() * 1000)}`;
+  }
+
+  if (existingNames.has(fullName)) {
+    for (let i = 1; i <= 999; i++) {
+      const candidate = `${fullName}${i}`;
+      if (!existingNames.has(candidate)) return candidate;
+    }
+    throw new Error('failed to generate name');
+  }
+
+  return fullName;
+};
 
 export const generateStudent = (
   id: string,
@@ -22,21 +91,12 @@ export const generateStudent = (
   provinceId?: string,
   forceGenius: boolean = false
 ): Student => {
-  let fullName = customName || '';
+  const fullName =
+    generateUniqueFullName(existingNames, { provinceId, customName }) ||
+    generateUniqueFullName(existingNames, { provinceId }) ||
+    `${NAMES.surnames[0] || '同学'}${Math.floor(Math.random() * 1000)}`;
 
-  if (!fullName) {
-    let attempts = 0;
-    do {
-      const surname = NAMES.surnames[Math.floor(Math.random() * NAMES.surnames.length)];
-      const name = NAMES.names[Math.floor(Math.random() * NAMES.names.length)];
-      fullName = surname + name;
-      attempts++;
-    } while (existingNames.has(fullName) && attempts < 50);
-  }
-
-  const gender = Math.random() > 0.5 ? 'M' : 'F';
-
-  const isGenius = forceGenius || Math.random() < 0.005;
+  const isGenius = forceGenius || (tier !== 'BEGINNER' && Math.random() < 0.02);
 
   const cfg = RECRUITMENT_CONFIG[tier];
   let talent;
@@ -65,7 +125,11 @@ export const generateStudent = (
   if (isGenius) {
     tags = ['天赋怪'];
   } else {
-    tags = Math.random() < 0.3 ? [TAGS[Math.floor(Math.random() * TAGS.length)].name] : [];
+    const selectableTags = TAGS.filter((t) => t.name !== '天赋怪');
+    tags =
+      Math.random() < 0.3 && selectableTags.length > 0
+        ? [selectableTags[Math.floor(Math.random() * selectableTags.length)].name]
+        : [];
   }
 
   const score = ability + talent * 0.5;
@@ -77,13 +141,12 @@ export const generateStudent = (
   finalCost = Math.max(100, finalCost);
 
   if (isGenius) {
-    finalCost *= 2;
+    finalCost *= 2.5;
   }
 
   return {
     id,
     name: fullName,
-    gender,
     tier,
     talent,
     ability,
@@ -163,7 +226,7 @@ export const useGameLogic = () => {
         console.log(`[Cheat] Added ${capped} cash.`);
       },
       setReputation: (amount: number) => {
-        const safe = clamp(amount, 0, 100);
+        const safe = clamp(amount, 0, REPUTATION_MAX);
         setGameState((prev) => ({ ...prev, reputation: safe }));
         console.log(`[Cheat] Set reputation to ${safe}.`);
       },
@@ -197,6 +260,25 @@ export const useGameLogic = () => {
         type,
       },
     ];
+  };
+
+  const ensureUniqueStudentNames = (state: GameState) => {
+    const seen = new Set<string>();
+
+    for (const student of state.students) {
+      const name = (student.name || '').trim();
+      if (name && !seen.has(name)) {
+        seen.add(name);
+        student.name = name;
+        continue;
+      }
+
+      const newName =
+        generateUniqueFullName(seen, { provinceId: state.province }) ||
+        `${NAMES.surnames[0] || '同学'}${Math.floor(Math.random() * 1000)}`;
+      student.name = newName;
+      seen.add(newName);
+    }
   };
 
   const removeNotification = (id: string) => {
@@ -247,10 +329,17 @@ export const useGameLogic = () => {
     }
 
     const initialStudents: Student[] = [];
+    const existingNames = new Set<string>();
     for (let i = 0; i < studentsCount; i++) {
-      initialStudents.push(
-        generateStudent(`init-${i}`, 'BEGINNER', undefined, undefined, setupForm.province)
+      const student = generateStudent(
+        `init-${i}`,
+        'BEGINNER',
+        undefined,
+        existingNames,
+        setupForm.province
       );
+      existingNames.add(student.name);
+      initialStudents.push(student);
     }
 
     setGameState({
@@ -330,9 +419,14 @@ export const useGameLogic = () => {
       const limitedDelta = Math.sign(delta) * Math.min(Math.abs(delta), 15);
       s.potentialStudents = clamp(s.potentialStudents + limitedDelta, 0, 40);
     };
-    const enrollStudent = (tier: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED', id: string) => {
+    const enrollStudent = (
+      tier: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
+      id: string,
+      forceGenius: boolean = false
+    ) => {
       if (s.students.length >= s.maxStudents) return false;
-      s.students.push(generateStudent(id, tier, undefined, undefined, s.province));
+      const existingNames = new Set(s.students.map((st) => st.name));
+      s.students.push(generateStudent(id, tier, undefined, existingNames, s.province, forceGenius));
       return true;
     };
     if (effects.money) s.cash += effects.money;
@@ -343,7 +437,7 @@ export const useGameLogic = () => {
 
     if (effects.geniusStudent) {
       const geniusId = `genius-${s.totalWeeks}-${s.students.length}`;
-      if (enrollStudent('ADVANCED', geniusId)) {
+      if (enrollStudent('ADVANCED', geniusId, true)) {
         const geniusStudent = s.students[s.students.length - 1];
         s.history.push({
           id: `genius-recruit-${s.totalWeeks}`,
@@ -477,12 +571,14 @@ export const useGameLogic = () => {
     if (effects.potentialStudents) adjustPotential(effects.potentialStudents);
     if (effects.fixedCost) s.fixedCost += effects.fixedCost;
 
-    s.reputation = clamp(s.reputation, 0, 100);
+    s.reputation = clamp(s.reputation, 0, REPUTATION_MAX);
     s.coachMorale = clamp(s.coachMorale, 0, 100);
     s.studentSatisfaction = clamp(s.studentSatisfaction, 0, 100);
     s.bossStress = clamp(s.bossStress, 0, 100);
     s.fixedCost = Math.max(0, s.fixedCost);
     s.potentialStudents = Math.max(0, s.potentialStudents);
+
+    ensureUniqueStudentNames(s);
   };
 
   const executeTraining = (intensity: 'LIGHT' | 'STANDARD' | 'INTENSE' | 'MOCK') => {
@@ -610,12 +706,25 @@ export const useGameLogic = () => {
     s.cash -= cost;
 
     let coachMoraleGain = 0;
-    if (type === 'MOVIE') coachMoraleGain = 2;
-    if (type === 'DINNER') coachMoraleGain = 5;
-    if (type === 'TRAVEl') coachMoraleGain = 10;
-    if (type === 'FREE') coachMoraleGain = 2;
-
+    let studentSatisfactionGain = 0;
+    if (type === 'MOVIE') {
+      coachMoraleGain = 2;
+      studentSatisfactionGain = 2;
+    }
+    if (type === 'DINNER') {
+      coachMoraleGain = 5;
+      studentSatisfactionGain = 5;
+    }
+    if (type === 'TRAVEl') {
+      coachMoraleGain = 10;
+      studentSatisfactionGain = 10;
+    }
+    if (type === 'FREE') {
+      coachMoraleGain = 2;
+      studentSatisfactionGain = 2;
+    }
     s.coachMorale = Math.min(100, s.coachMorale + coachMoraleGain);
+    s.studentSatisfaction = Math.min(100, s.studentSatisfaction + studentSatisfactionGain);
     s.bossStress = Math.max(0, s.bossStress - coachMoraleGain);
 
     let totalMoodGain = 0;
@@ -1075,7 +1184,13 @@ export const useGameLogic = () => {
     });
 
     if (totalSatisfactionBonus > 0) {
-      s.studentSatisfaction = Math.min(100, s.studentSatisfaction + totalSatisfactionBonus);
+      s.studentSatisfaction = Math.min(
+        100,
+        s.studentSatisfaction +
+          totalSatisfactionBonus * 1.5 +
+          s.coachMorale * 0.02 +
+          s.facilityLevel * 0.5
+      );
     }
   };
 
@@ -1109,16 +1224,17 @@ export const useGameLogic = () => {
       const realGained = Math.min(gained, availableSpace);
 
       if (realGained > 0) {
+        const existingNames = new Set(s.students.map((st) => st.name));
         for (let i = 0; i < realGained; i++) {
-          s.students.push(
-            generateStudent(
-              `auto-${s.totalWeeks}-${i}`,
-              'BEGINNER',
-              undefined,
-              undefined,
-              s.province
-            )
+          const student = generateStudent(
+            `auto-${s.totalWeeks}-${i}`,
+            'BEGINNER',
+            undefined,
+            existingNames,
+            s.province
           );
+          existingNames.add(student.name);
+          s.students.push(student);
         }
         addLog(s, `由于前期运营，本周新增 ${realGained} 名普及组学生加入。`, 'success');
       }
@@ -1202,7 +1318,7 @@ export const useGameLogic = () => {
       const avgAbility = teamAbilitySum / Math.max(1, topStudents.length);
 
       const coachScore = s.coachLevel * 10;
-      const repScore = Math.min(100, s.reputation);
+      const repScore = Math.min(REPUTATION_MAX, s.reputation);
 
       let base = avgAbility * 0.6 + coachScore * 0.3 + repScore * 0.1;
 
@@ -1359,6 +1475,8 @@ export const useGameLogic = () => {
       addNotification(s, '警告：教练士气过低，请尽快鼓舞士气！', 'error');
     }
 
+    ensureUniqueStudentNames(s);
+
     setGameState(s);
   };
 
@@ -1458,7 +1576,21 @@ export const useGameLogic = () => {
       return;
     }
 
+    const existingNames = new Set(s.students.map((st) => (st.name || '').trim()).filter(Boolean));
+    for (const st of students) {
+      const incoming = (st.name || '').trim();
+      if (!incoming || existingNames.has(incoming)) {
+        st.name =
+          generateUniqueFullName(existingNames, { provinceId: s.province }) ||
+          `${NAMES.surnames[0] || '同学'}${Math.floor(Math.random() * 1000)}`;
+      } else {
+        st.name = incoming;
+      }
+      existingNames.add(st.name);
+    }
+
     s.students.push(...students);
+    ensureUniqueStudentNames(s);
 
     const names = students.map((st) => st.name).join('、');
     addLog(s, `成功招募了：${names}`, 'success');
@@ -1518,10 +1650,27 @@ export const useGameLogic = () => {
   const renameStudent = (studentId: string, newName: string) => {
     const s = { ...gameState };
     const student = s.students.find((st) => st.id === studentId);
-    if (student) {
-      student.name = newName;
+    if (!student) return;
+
+    const target = (newName || '').trim();
+    if (!target) {
+      addNotification(s, '姓名不能为空。', 'error');
       setGameState(s);
+      return;
     }
+
+    const conflict = s.students.some(
+      (st) => st.id !== studentId && (st.name || '').trim() === target
+    );
+    if (conflict) {
+      addNotification(s, `改名失败：已存在同名学生「${target}」。`, 'error');
+      setGameState(s);
+      return;
+    }
+
+    student.name = target;
+    ensureUniqueStudentNames(s);
+    setGameState(s);
   };
 
   return {

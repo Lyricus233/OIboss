@@ -29,6 +29,8 @@ const RecruitModal: React.FC<RecruitModalProps> = ({ gameState, onClose, onRecru
 
   const generateCandidates = () => {
     const newCandidates: Candidate[] = [];
+    const existingNames = new Set(gameState.students.map((s) => s.name));
+
     for (let i = 0; i < 10; i++) {
       const rand = Math.random();
       let tier: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' = 'BEGINNER';
@@ -36,7 +38,6 @@ const RecruitModal: React.FC<RecruitModalProps> = ({ gameState, onClose, onRecru
       if (rand > 0.9) tier = 'ADVANCED';
 
       const cfg = RECRUITMENT_CONFIG[tier];
-      const existingNames = new Set(gameState.students.map((s) => s.name));
       const student = generateStudent(
         `c_${Date.now()}_${i}`,
         tier,
@@ -44,6 +45,7 @@ const RecruitModal: React.FC<RecruitModalProps> = ({ gameState, onClose, onRecru
         existingNames,
         gameState.province
       );
+      existingNames.add(student.name);
       newCandidates.push({
         student,
         tier,
@@ -89,6 +91,21 @@ const RecruitModal: React.FC<RecruitModalProps> = ({ gameState, onClose, onRecru
     if (selectedCandidates.some((c) => !c.student.name.trim())) {
       setError('学生姓名不能为空！');
       return;
+    }
+
+    const existingNames = new Set(gameState.students.map((st) => st.name.trim()));
+    const seenNames = new Set<string>();
+    for (const candidate of selectedCandidates) {
+      const trimmed = candidate.student.name.trim();
+      if (existingNames.has(trimmed)) {
+        setError(`姓名「${trimmed}」已有在校学生，无法重复招募。`);
+        return;
+      }
+      if (seenNames.has(trimmed)) {
+        setError(`候选人列表中存在重复姓名「${trimmed}」。`);
+        return;
+      }
+      seenNames.add(trimmed);
     }
 
     if (selectedCandidates.length > 0 && canAfford && allReqMet) {
@@ -247,9 +264,12 @@ const RecruitModal: React.FC<RecruitModalProps> = ({ gameState, onClose, onRecru
                         }
                         className={`w-full rounded-lg border px-3 py-2 ${error ? 'border-red-500' : 'border-slate-200'} text-sm focus:border-indigo-500 focus:outline-none`}
                       />
-                      {error && <div className="mt-1 text-xs text-red-500">{error}</div>}
                     </div>
                   )}
+
+                  <div className="mb-4">
+                    {error && <div className="mt-1 text-xs text-red-500">{error}</div>}
+                  </div>
 
                   <div className="mt-auto border-t border-slate-200 pt-4">
                     <div className="mb-4 flex items-center justify-between">

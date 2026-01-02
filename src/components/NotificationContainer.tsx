@@ -14,7 +14,7 @@ const NotificationItem: React.FC<{
   useEffect(() => {
     const timer = setTimeout(() => {
       onRemove(notification.id);
-    }, 3000);
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, [notification.id, onRemove]);
