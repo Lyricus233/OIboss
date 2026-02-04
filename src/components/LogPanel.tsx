@@ -16,7 +16,7 @@ const LogPanel: React.FC<LogPanelProps> = ({ gameState }) => {
   }, [gameState.history]);
 
   const rent = gameState.fixedCost;
-  const moralePenalty = gameState.coachMorale < 50 ? 2000 : 0;
+  const moralePenalty = gameState.coachMorale < 40 ? 2000 : 0;
   const totalTuition = gameState.students.reduce((sum, s) => sum + calculateTuition(s), 0);
   const netIncome = totalTuition - rent - moralePenalty;
 

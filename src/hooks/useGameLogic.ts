@@ -94,7 +94,7 @@ export const generateStudent = (
   const fullName =
     generateUniqueFullName(existingNames, { provinceId, customName }) ||
     generateUniqueFullName(existingNames, { provinceId }) ||
-    `${NAMES.surnames[0] || '同学'}${Math.floor(Math.random() * 1000)}`;
+    `${NAMES.surnames[Math.floor(Math.random() * NAMES.surnames.length)]}${Math.floor(Math.random() * 1000)}`;
 
   const isGenius = forceGenius || (tier !== 'BEGINNER' && Math.random() < 0.02);
 

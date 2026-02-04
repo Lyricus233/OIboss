@@ -1,14 +1,15 @@
 import React from 'react';
-import { Briefcase, DollarSign, Trophy, Calendar, MapPin } from 'lucide-react';
+import { Briefcase, DollarSign, Trophy, Calendar, MapPin, Save } from 'lucide-react';
 import { GameState } from '../types';
 import { CALENDAR_EVENTS, PROVINCES } from '../constants';
 import { formatMoney } from '../../utils';
 
 interface HeaderProps {
   gameState: GameState;
+  onOpenSaveLoad: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ gameState }) => {
+const Header: React.FC<HeaderProps> = ({ gameState, onOpenSaveLoad }) => {
   const provinceName = PROVINCES.find((p) => p.id === gameState.province)?.name;
 
   return (
@@ -64,7 +65,16 @@ const Header: React.FC<HeaderProps> = ({ gameState }) => {
         })()}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-6">
+        <button
+          onClick={onOpenSaveLoad}
+          className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800"
+          title="存档/读档"
+        >
+          <Save size={16} />
+          <span>进度</span>
+        </button>
+
         <div
           className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-base"
           title={`资金：用于支付房租和活动费用。归零则游戏结束。`}

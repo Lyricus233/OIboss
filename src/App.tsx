@@ -9,6 +9,7 @@ import Dashboard from './components/Dashboard';
 import LogPanel from './components/LogPanel';
 import SetupScreen from './components/SetupScreen';
 import RecruitModal from './components/RecruitModal';
+import SaveLoadModal from './components/SaveLoadModal'; // Import the new modal
 import GameOverScreen from './components/GameOverScreen';
 import { useGameLogic } from './hooks/useGameLogic';
 
@@ -32,6 +33,7 @@ const App: React.FC = () => {
   } = useGameLogic();
 
   const [showRecruitModal, setShowRecruitModal] = useState(false);
+  const [showSaveLoadModal, setShowSaveLoadModal] = useState(false); // Add state for SaveLoadModal
 
   const Footer = () => (
     <footer className="relative z-60 shrink-0 border-t border-slate-200 bg-slate-100 py-1 text-center text-xs text-slate-500">
@@ -59,13 +61,12 @@ const App: React.FC = () => {
 
     return (
       <>
-        <Header gameState={gameState} />
-
+        <Header gameState={gameState} onOpenSaveLoad={() => setShowSaveLoadModal(true)} />{' '}
+        {/* Pass handler to Header */}
         <NotificationContainer
           notifications={gameState.notifications || []}
           onRemove={removeNotification}
         />
-
         {/* Main Grid Layout */}
         <div className="grid flex-1 grid-cols-12 gap-3 overflow-hidden p-3">
           <Sidebar
@@ -86,7 +87,6 @@ const App: React.FC = () => {
 
           <LogPanel gameState={gameState} />
         </div>
-
         {showRecruitModal && (
           <RecruitModal
             gameState={gameState}
@@ -94,7 +94,16 @@ const App: React.FC = () => {
             onRecruit={recruitStudent}
           />
         )}
-
+        {showSaveLoadModal && (
+          <SaveLoadModal
+            gameState={gameState}
+            onClose={() => setShowSaveLoadModal(false)}
+            onImport={(newState) => {
+              setGameState(newState);
+              // Add a success notification? Ideally useGameLogic handles this, but direct state set works for full restore.
+            }}
+          />
+        )}
         {gameState.status === 'MODAL' && gameState.modalContent && (
           <Modal
             config={gameState.modalContent}
@@ -112,7 +121,6 @@ const App: React.FC = () => {
             }
           />
         )}
-
         {gameState.currentEvent &&
           (gameState.currentEvent.type === 'CHAT' && gameState.currentEvent.activeChat ? (
             <ChatEventModal
