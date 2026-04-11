@@ -1764,23 +1764,23 @@ export const useGameLogic = () => {
     const results: ContestStudentResult[] = participants.map((student) => {
       const tags = student.tags || [];
       const skillIndex =
-        student.ability * 0.65 +
+        student.ability * 0.85 +
         student.talent * 0.2 +
         s.coachLevel * 5 +
         clamp(s.reputation, 0, REPUTATION_MAX) * 0.05;
-      const skillDelta = (skillIndex - 58) * 0.75;
+      const skillDelta = (skillIndex - 50) * 1.1;
       const mentalityDelta = getMentalityDelta(student);
       const contestTagBonus = getContestTagBonus(tags);
 
       const scores = problems.map((problem, problemIndex) => {
         if (profile.mode === 'CSP1') {
           const baseAround65 = 75;
-          let noise = getNoise(tags, 10);
+          let noise = getNoise(tags, 8);
           const tail = Math.random();
           if (tail < 0.08) noise -= randomInt(15, 25);
           else if (tail > 0.9) noise += randomInt(12, 25);
 
-          const effectiveSkillDelta = skillDelta < 0 ? skillDelta * 0.4 : skillDelta * 0.6;
+          const effectiveSkillDelta = skillDelta < 0 ? skillDelta * 0.5 : skillDelta * 0.8;
           const score =
             baseAround65 + effectiveSkillDelta * 1.1 + mentalityDelta + contestTagBonus + noise;
           return Math.round(clamp(score, 0, 100));
@@ -1796,7 +1796,7 @@ export const useGameLogic = () => {
           progressiveBaseByIndex[Math.min(progressiveBaseByIndex.length - 1, problemIndex)] || 50;
         const difficultyAdjust = (problem.difficulty - 6) * 3.8;
         const qualityAdjust = (problem.quality - 7) * 1.5;
-        const noise = getNoise(tags, 11);
+        const noise = getNoise(tags, 8);
         const score =
           base +
           skillDelta * 0.95 +
@@ -1845,7 +1845,7 @@ export const useGameLogic = () => {
     const getCompetitionCutoff = (mode: ContestMode, type: string, totalMax: number) => {
       const cutoffMap: Record<string, Record<string, number>> = {
         CSP1: { strong: 0.7, normal: 0.6, weak: 0.5 },
-        CSP2: { strong: 0.6, normal: 0.5, weak: 0.4 },
+        CSP2: { strong: 0.5, normal: 0.4, weak: 0.3 },
         NOIP: { strong: 0.55, normal: 0.45, weak: 0.35 },
         PROVINCIAL: { strong: 0.45, normal: 0.35, weak: 0.25 },
         NOI: { strong: 0.65, normal: 0.65, weak: 0.65 },
@@ -2253,6 +2253,46 @@ export const useGameLogic = () => {
     return false;
   };
 
+  const updateStudentTiers = (s: GameState) => {
+    s.students.forEach((student) => {
+      let newTier = student.tier;
+      const history = student.passedContests || [];
+      const abilityScore = student.ability;
+
+      if (
+        history.includes('NOIP_一等奖') ||
+        history.includes('NOI') ||
+        history.includes('NOI_一等奖') ||
+        history.includes('CTT') ||
+        history.includes('CTS')
+      ) {
+        newTier = 'ADVANCED';
+      } else if (abilityScore >= 80) {
+        newTier = 'ADVANCED';
+      } else if (newTier === 'BEGINNER') {
+        if (
+          history.includes('CSP2_一等奖') ||
+          history.includes('NOIP') ||
+          history.includes('CSP-J/S 第二轮_一等奖')
+        ) {
+          newTier = 'INTERMEDIATE';
+        } else if (abilityScore >= 45) {
+          newTier = 'INTERMEDIATE';
+        }
+      }
+
+      if (newTier !== student.tier) {
+        const tierNames = { BEGINNER: '普及组', INTERMEDIATE: '提高组', ADVANCED: '省选组' };
+        addLog(
+          s,
+          `【晋级】「${student.name}」综合能力提升，已晋升至「${tierNames[newTier]}」！`,
+          'success'
+        );
+        student.tier = newTier;
+      }
+    });
+  };
+
   const processEndWeekLogic = (s: GameState) => {
     simulateStudentGrowth(s);
     simulateWeekEconomy(s);
@@ -2260,6 +2300,8 @@ export const useGameLogic = () => {
     if (!hasContest) {
       handleRandomEvent(s);
     }
+
+    updateStudentTiers(s);
 
     if (!s.actedThisWeek) {
       s.bossStress += 2;
