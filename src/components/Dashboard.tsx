@@ -263,8 +263,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                   border: 'none',
                   boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                 }}
-                formatter={(value: number | undefined) => [
-                  value != null ? `¥${value.toLocaleString()}` : '-',
+                formatter={(value: any) => [
+                  value != null ? `¥${Number(value).toLocaleString()}` : '-',
                   '资金',
                 ]}
                 labelFormatter={(label) => `第 ${label} 周`}
