@@ -479,7 +479,9 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
                             <th className="px-2 py-2 text-left">组别</th>
                             <th className="px-2 py-2 text-center">总分</th>
                             <th className="px-2 py-2 text-center">奖项</th>
-                            <th className="px-2 py-2 text-center">是否过线</th>
+                            {result.hasAdvancement && (
+                              <th className="px-2 py-2 text-center">是否过线</th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
@@ -503,17 +505,19 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
                               <td className="px-2 py-1.5 text-center text-slate-700">
                                 {row.award || '未获奖'}
                               </td>
-                              <td className="px-2 py-1.5 text-center">
-                                <span
-                                  className={`rounded-full px-2 py-0.5 ${
-                                    row.passed
-                                      ? 'bg-emerald-50 text-emerald-700'
-                                      : 'bg-rose-50 text-rose-700'
-                                  }`}
-                                >
-                                  {row.passed ? '过线' : '未过线'}
-                                </span>
-                              </td>
+                              {result.hasAdvancement && (
+                                <td className="px-2 py-1.5 text-center">
+                                  <span
+                                    className={`rounded-full px-2 py-0.5 ${
+                                      row.passed
+                                        ? 'bg-emerald-50 text-emerald-700'
+                                        : 'bg-rose-50 text-rose-700'
+                                    }`}
+                                  >
+                                    {row.passed ? '过线' : '未过线'}
+                                  </span>
+                                </td>
+                              )}
                             </tr>
                           ))}
                         </tbody>
