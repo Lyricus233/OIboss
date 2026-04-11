@@ -14,6 +14,8 @@ export interface Student {
   cost: number;
   lastContestStatus?: 'PASSED' | 'FAILED';
   lastContestName?: string;
+  lastAdvancementContest?: string;
+  lastAdvancementStatus?: 'PASSED' | 'FAILED';
   passedContests?: string[];
 }
 

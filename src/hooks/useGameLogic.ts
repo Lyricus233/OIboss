@@ -204,6 +204,7 @@ type ContestMode =
 interface ContestProfile {
   mode: ContestMode;
   problems: ContestProblem[];
+  hasAdvancement: boolean;
   cutoffScore?: number;
   groupCutoffRanges?: Partial<
     Record<'BEGINNER' | 'INTERMEDIATE' | 'OPEN', { min: number; max: number }>
@@ -240,6 +241,7 @@ const buildContestProfile = (event: CalendarEvent): ContestProfile => {
   if (mode === 'CSP1') {
     return {
       mode,
+      hasAdvancement: true,
       groupCutoffRanges: {
         BEGINNER: { min: 50, max: 75 },
         INTERMEDIATE: { min: 50, max: 60 },
@@ -261,6 +263,7 @@ const buildContestProfile = (event: CalendarEvent): ContestProfile => {
   if (mode === 'CSP2') {
     return {
       mode,
+      hasAdvancement: true,
       groupCutoffRanges: {
         BEGINNER: { min: 50, max: 75 },
         INTERMEDIATE: { min: 50, max: 60 },
@@ -280,6 +283,7 @@ const buildContestProfile = (event: CalendarEvent): ContestProfile => {
   if (mode === 'NOIP') {
     return {
       mode,
+      hasAdvancement: true,
       groupCutoffRanges: {
         OPEN: { min: 180, max: 240 },
       },
@@ -298,6 +302,7 @@ const buildContestProfile = (event: CalendarEvent): ContestProfile => {
   if (mode === 'NOIWC') {
     return {
       mode,
+      hasAdvancement: false,
       problems:
         problems.length > 0
           ? problems
@@ -313,6 +318,7 @@ const buildContestProfile = (event: CalendarEvent): ContestProfile => {
   if (mode === 'PROVINCIAL') {
     return {
       mode,
+      hasAdvancement: true,
       problems:
         problems.length > 0
           ? problems
@@ -328,6 +334,7 @@ const buildContestProfile = (event: CalendarEvent): ContestProfile => {
   if (mode === 'APIO') {
     return {
       mode,
+      hasAdvancement: false,
       problems:
         problems.length > 0
           ? problems
@@ -343,6 +350,7 @@ const buildContestProfile = (event: CalendarEvent): ContestProfile => {
   if (mode === 'CTS') {
     return {
       mode,
+      hasAdvancement: true,
       problems:
         problems.length > 0
           ? problems
@@ -358,6 +366,7 @@ const buildContestProfile = (event: CalendarEvent): ContestProfile => {
   if (mode === 'IOI') {
     return {
       mode,
+      hasAdvancement: false,
       problems:
         problems.length > 0
           ? problems
@@ -373,6 +382,7 @@ const buildContestProfile = (event: CalendarEvent): ContestProfile => {
   if (mode === 'NOI') {
     return {
       mode,
+      hasAdvancement: true,
       problems:
         problems.length > 0
           ? problems
@@ -386,11 +396,12 @@ const buildContestProfile = (event: CalendarEvent): ContestProfile => {
   }
 
   if (problems.length > 0) {
-    return { mode: 'GENERAL', problems };
+    return { mode: 'GENERAL', hasAdvancement: false, problems };
   }
 
   return {
     mode: 'GENERAL',
+    hasAdvancement: false,
     problems: Array.from({ length: 3 }, (_, idx) => ({
       id: `${event.week}-p${idx + 1}`,
       label: `T${idx + 1}`,
@@ -1872,8 +1883,13 @@ export const useGameLogic = () => {
       student.lastContestStatus = passed ? 'PASSED' : 'FAILED';
       student.lastContestName = event.name;
 
+      if (profile.hasAdvancement) {
+        student.lastAdvancementContest = event.name;
+        student.lastAdvancementStatus = passed ? 'PASSED' : 'FAILED';
+      }
+
       if (!student.passedContests) student.passedContests = [];
-      if (passed && !student.passedContests.includes(event.name)) {
+      if (passed && profile.hasAdvancement && !student.passedContests.includes(event.name)) {
         student.passedContests.push(event.name);
       }
     });

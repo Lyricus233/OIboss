@@ -12,7 +12,9 @@ const LogPanel: React.FC<LogPanelProps> = ({ gameState }) => {
   const scrollLogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollLogRef.current) scrollLogRef.current.scrollTop = scrollLogRef.current.scrollHeight;
+    if (scrollLogRef.current) {
+      scrollLogRef.current.scrollTop = scrollLogRef.current.scrollHeight;
+    }
   }, [gameState.history]);
 
   const rent = gameState.fixedCost;
@@ -60,26 +62,23 @@ const LogPanel: React.FC<LogPanelProps> = ({ gameState }) => {
           </h3>
         </div>
         <div className="flex-1 space-y-2 overflow-y-auto p-2" ref={scrollLogRef}>
-          {gameState.history
-            .slice()
-            .reverse()
-            .map((log) => (
-              <div
-                key={log.id}
-                className={`rounded border p-2 text-xs ${
-                  log.type === 'success'
-                    ? 'border-green-100 bg-green-50 text-green-800'
-                    : log.type === 'danger'
-                      ? 'border-red-100 bg-red-50 text-red-800'
-                      : log.type === 'warning'
-                        ? 'border-orange-100 bg-orange-50 text-orange-800'
-                        : 'border-slate-100 bg-slate-50 text-slate-600'
-                }`}
-              >
-                <span className="mr-1 font-mono opacity-50">W{log.week}</span>
-                <span className="whitespace-pre-wrap">{log.message}</span>
-              </div>
-            ))}
+          {gameState.history.map((log) => (
+            <div
+              key={log.id}
+              className={`rounded border p-2 text-xs ${
+                log.type === 'success'
+                  ? 'border-green-100 bg-green-50 text-green-800'
+                  : log.type === 'danger'
+                    ? 'border-red-100 bg-red-50 text-red-800'
+                    : log.type === 'warning'
+                      ? 'border-orange-100 bg-orange-50 text-orange-800'
+                      : 'border-slate-100 bg-slate-50 text-slate-600'
+              }`}
+            >
+              <span className="mr-1 font-mono opacity-50">W{log.week}</span>
+              <span className="whitespace-pre-wrap">{log.message}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

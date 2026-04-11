@@ -60,29 +60,22 @@ const StudentCard: React.FC<StudentCardProps> = ({
               <Edit2 size={12} className="text-slate-400 opacity-0 group-hover/name:opacity-50" />
             </h3>
           )}
-          {!hideContestStatus && (
+          {!hideContestStatus && student.lastAdvancementContest && (
             <div className="flex flex-wrap gap-1">
-              {student.passedContests &&
-                student.passedContests.map((contestName, idx) => (
-                  <span
-                    key={idx}
-                    className="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700"
-                    title={`已晋级: ${contestName}`}
-                  >
-                    {contestName
-                      .replace(' (国家队选拔)', '')
-                      .replace(' 第一轮', '1')
-                      .replace(' 第二轮', '2')}
-                  </span>
-                ))}
-              {student.lastContestStatus === 'FAILED' && student.lastContestName && (
-                <span
-                  className="rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[9px] font-bold text-red-700"
-                  title={`未晋级: ${student.lastContestName}`}
-                >
-                  未晋级
-                </span>
-              )}
+              <span
+                className={`rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${
+                  student.lastAdvancementStatus === 'PASSED'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                    : 'border-red-200 bg-red-50 text-red-700'
+                }`}
+                title={`${student.lastAdvancementStatus === 'PASSED' ? '已晋级' : '未晋级'}: ${student.lastAdvancementContest}`}
+              >
+                {student.lastAdvancementStatus === 'PASSED' ? '已晋级' : '未晋级'}{' '}
+                {student.lastAdvancementContest
+                  .replace(' (国家队选拔)', '')
+                  .replace(' 第一轮', '1')
+                  .replace(' 第二轮', '2')}
+              </span>
             </div>
           )}
         </div>
