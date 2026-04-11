@@ -77,7 +77,7 @@ const LogPanel: React.FC<LogPanelProps> = ({ gameState }) => {
                 }`}
               >
                 <span className="mr-1 font-mono opacity-50">W{log.week}</span>
-                {log.message}
+                <span className="whitespace-pre-wrap">{log.message}</span>
               </div>
             ))}
         </div>

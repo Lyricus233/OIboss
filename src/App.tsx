@@ -11,6 +11,7 @@ import SetupScreen from './components/SetupScreen';
 import RecruitModal from './components/RecruitModal';
 import SaveLoadModal from './components/SaveLoadModal'; // Import the new modal
 import GameOverScreen from './components/GameOverScreen';
+import ContestResultModal from './components/ContestResultModal';
 import { useGameLogic } from './hooks/useGameLogic';
 
 const App: React.FC = () => {
@@ -30,6 +31,8 @@ const App: React.FC = () => {
     renameStudent,
     removeNotification,
     handleChatEventComplete,
+    closeContestResult,
+    startContest,
   } = useGameLogic();
 
   const [showRecruitModal, setShowRecruitModal] = useState(false);
@@ -80,6 +83,7 @@ const App: React.FC = () => {
             gameState={gameState}
             handleActionClick={handleActionClick}
             endWeek={endWeek}
+            startContest={startContest}
             onOpenRecruit={() => setShowRecruitModal(true)}
             upgradeCoach={upgradeCoach}
             upgradeFacility={upgradeFacility}
@@ -165,6 +169,12 @@ const App: React.FC = () => {
               }}
             />
           ))}
+        {gameState.currentContestResult && (
+          <ContestResultModal
+            result={gameState.currentContestResult}
+            onClose={closeContestResult}
+          />
+        )}
       </>
     );
   };

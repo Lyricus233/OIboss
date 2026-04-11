@@ -1,13 +1,19 @@
 import React from 'react';
-import { PlayCircle, UserPlus, TrendingUp, ArrowRight, Building } from 'lucide-react';
+import { PlayCircle, UserPlus, TrendingUp, ArrowRight, Building, Trophy } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, Tooltip } from 'recharts';
 import { GameState } from '../types';
-import { AGENCY_ACTIONS, COACH_UPGRADE_COSTS, FACILITY_CONFIG } from '../constants';
+import {
+  AGENCY_ACTIONS,
+  COACH_UPGRADE_COSTS,
+  FACILITY_CONFIG,
+  CALENDAR_EVENTS,
+} from '../constants';
 
 interface DashboardProps {
   gameState: GameState;
   handleActionClick: (actionId: string) => void;
   endWeek: () => void;
+  startContest: () => void;
   onOpenRecruit: () => void;
   upgradeCoach: () => void;
   upgradeFacility: () => void;
@@ -17,6 +23,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   gameState,
   handleActionClick,
   endWeek,
+  startContest,
   onOpenRecruit,
   upgradeCoach,
   upgradeFacility,
@@ -135,70 +142,107 @@ const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* Decision Panel */}
-      <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-3 flex shrink-0 items-center justify-between">
-          <h3 className="flex items-center gap-2 text-base font-bold text-slate-700">
-            <PlayCircle size={18} className="text-indigo-600" /> 本周决策
-          </h3>
-          <button
-            onClick={endWeek}
-            className="flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-300"
-          >
-            跳过本周 <ArrowRight size={14} />
-          </button>
-        </div>
+      {(() => {
+        const currentWeekEvent = CALENDAR_EVENTS[gameState.week];
+        const isContestWeek = currentWeekEvent?.type === 'CONTEST';
 
-        <div className="grid flex-1 grid-cols-3 content-start gap-2 overflow-y-auto pr-1">
-          {AGENCY_ACTIONS.map((action) => {
-            const themeStyles = {
-              default: {
-                btn: 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md',
-                title: 'text-slate-800',
-                desc: 'text-slate-500',
-              },
-              danger: {
-                btn: 'bg-red-50 border-red-200 hover:border-red-400 hover:shadow-md hover:bg-red-100',
-                title: 'text-red-700',
-                desc: 'text-red-500',
-              },
-              primary: {
-                btn: 'bg-blue-50 border-blue-200 hover:border-blue-400 hover:shadow-md hover:bg-blue-100',
-                title: 'text-blue-700',
-                desc: 'text-blue-500',
-              },
-              success: {
-                btn: 'bg-green-50 border-green-200 hover:border-green-400 hover:shadow-md hover:bg-green-100',
-                title: 'text-green-700',
-                desc: 'text-green-500',
-              },
-            } as const;
-
-            type ThemeKey = keyof typeof themeStyles;
-            const theme = (action.theme ?? 'default') as ThemeKey;
-            const style = themeStyles[theme];
-
-            return (
+        if (isContestWeek) {
+          return (
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center rounded-xl border border-amber-200 bg-linear-to-br from-amber-50 to-orange-50 p-6 shadow-sm">
+              <div className="mb-4 rounded-full bg-amber-100 p-4">
+                <Trophy size={40} className="text-amber-600" />
+              </div>
+              <h3 className="mb-2 text-xl font-bold text-amber-800">🏆 比赛日</h3>
+              <p className="mb-1 text-base font-bold text-amber-700">{currentWeekEvent.name}</p>
+              <p className="mb-6 max-w-md text-center text-sm text-amber-600">
+                {currentWeekEvent.description}
+              </p>
+              <p className="mb-4 text-xs text-amber-500">
+                本周为比赛周，将自动参加比赛，无需其他决策。
+              </p>
               <button
-                key={action.id}
-                onClick={() => handleActionClick(action.id)}
+                onClick={startContest}
                 disabled={gameState.actedThisWeek}
-                className={`group relative h-auto overflow-hidden rounded-lg border p-2 text-left transition-all ${
+                className={`flex items-center gap-2 rounded-xl px-8 py-3 text-base font-bold shadow-md transition-all ${
                   gameState.actedThisWeek
-                    ? 'cursor-not-allowed border-slate-100 bg-slate-50 opacity-50'
-                    : style.btn
+                    ? 'cursor-not-allowed bg-slate-300 text-slate-500'
+                    : 'bg-amber-600 text-white hover:bg-amber-700 hover:shadow-lg'
                 }`}
               >
-                <div>
-                  <div className={`mb-1 text-sm leading-tight font-bold ${style.title}`}>
-                    {action.name}
-                  </div>
-                  <div className={`line-clamp-2 text-xs ${style.desc}`}>{action.desc}</div>
-                </div>
+                <Trophy size={20} />
+                开始比赛
               </button>
-            );
-          })}
-        </div>
-      </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex shrink-0 items-center justify-between">
+              <h3 className="flex items-center gap-2 text-base font-bold text-slate-700">
+                <PlayCircle size={18} className="text-indigo-600" /> 本周决策
+              </h3>
+              <button
+                onClick={endWeek}
+                className="flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-300"
+              >
+                跳过本周 <ArrowRight size={14} />
+              </button>
+            </div>
+
+            <div className="grid flex-1 grid-cols-3 content-start gap-2 overflow-y-auto pr-1">
+              {AGENCY_ACTIONS.map((action) => {
+                const themeStyles = {
+                  default: {
+                    btn: 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md',
+                    title: 'text-slate-800',
+                    desc: 'text-slate-500',
+                  },
+                  danger: {
+                    btn: 'bg-red-50 border-red-200 hover:border-red-400 hover:shadow-md hover:bg-red-100',
+                    title: 'text-red-700',
+                    desc: 'text-red-500',
+                  },
+                  primary: {
+                    btn: 'bg-blue-50 border-blue-200 hover:border-blue-400 hover:shadow-md hover:bg-blue-100',
+                    title: 'text-blue-700',
+                    desc: 'text-blue-500',
+                  },
+                  success: {
+                    btn: 'bg-green-50 border-green-200 hover:border-green-400 hover:shadow-md hover:bg-green-100',
+                    title: 'text-green-700',
+                    desc: 'text-green-500',
+                  },
+                } as const;
+
+                type ThemeKey = keyof typeof themeStyles;
+                const theme = (action.theme ?? 'default') as ThemeKey;
+                const style = themeStyles[theme];
+
+                return (
+                  <button
+                    key={action.id}
+                    onClick={() => handleActionClick(action.id)}
+                    disabled={gameState.actedThisWeek}
+                    className={`group relative h-auto overflow-hidden rounded-lg border p-2 text-left transition-all ${
+                      gameState.actedThisWeek
+                        ? 'cursor-not-allowed border-slate-100 bg-slate-50 opacity-50'
+                        : style.btn
+                    }`}
+                  >
+                    <div>
+                      <div className={`mb-1 text-sm leading-tight font-bold ${style.title}`}>
+                        {action.name}
+                      </div>
+                      <div className={`line-clamp-2 text-xs ${style.desc}`}>{action.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Chart Area */}
       <div className="flex h-32 shrink-0 flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-sm">

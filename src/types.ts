@@ -12,6 +12,53 @@ export interface Student {
   stress: number;
   tags: string[];
   cost: number;
+  lastContestStatus?: 'PASSED' | 'FAILED';
+  lastContestName?: string;
+  passedContests?: string[];
+}
+
+export interface ContestProblem {
+  id: string;
+  label: string;
+  difficulty: number;
+  quality: number;
+  stageName?: string;
+}
+
+export interface ContestStudentResult {
+  studentId: string;
+  studentName: string;
+  tier: Student['tier'];
+  contestGroup: 'BEGINNER' | 'INTERMEDIATE' | 'OPEN';
+  problemScores: number[];
+  totalScore: number;
+  rank: number;
+  passed?: boolean;
+  award?: '一等奖' | '二等奖' | '三等奖' | '未获奖';
+}
+
+export interface ContestResult {
+  contestId: string;
+  contestName: string;
+  week: number;
+  problems: ContestProblem[];
+  participants: ContestStudentResult[];
+  totalPossibleScore: number;
+  averageScore: number;
+  cutoffScore?: number;
+  groupCutoffScores?: Partial<Record<'BEGINNER' | 'INTERMEDIATE' | 'OPEN', number>>;
+  groupAwardLines?: Partial<
+    Record<'BEGINNER' | 'INTERMEDIATE' | 'OPEN', { first: number; second: number; third: number }>
+  >;
+  summary: string;
+  effects: {
+    reputation?: number;
+    potentialStudents?: number;
+    studentSatisfaction?: number;
+  };
+  logMessage?: string;
+  logType?: 'success' | 'danger' | 'warning' | 'info';
+  medalsWon?: number;
 }
 
 export interface GameState {
@@ -38,6 +85,7 @@ export interface GameState {
   week: number;
   actedThisWeek: boolean;
   currentEvent: RandomEvent | null;
+  currentContestResult?: ContestResult | null;
   year: number;
   totalWeeks: number;
 

@@ -8,9 +8,15 @@ interface StudentCardProps {
   student: Student;
   onRename: (newName: string) => void;
   onDismiss?: () => void;
+  hideContestStatus?: boolean;
 }
 
-const StudentCard: React.FC<StudentCardProps> = ({ student, onRename, onDismiss }) => {
+const StudentCard: React.FC<StudentCardProps> = ({
+  student,
+  onRename,
+  onDismiss,
+  hideContestStatus,
+}) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(student.name);
   const [hoveredTag, setHoveredTag] = useState<{
@@ -53,6 +59,31 @@ const StudentCard: React.FC<StudentCardProps> = ({ student, onRename, onDismiss 
               {student.name}
               <Edit2 size={12} className="text-slate-400 opacity-0 group-hover/name:opacity-50" />
             </h3>
+          )}
+          {!hideContestStatus && (
+            <div className="flex flex-wrap gap-1">
+              {student.passedContests &&
+                student.passedContests.map((contestName, idx) => (
+                  <span
+                    key={idx}
+                    className="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700"
+                    title={`已晋级: ${contestName}`}
+                  >
+                    {contestName
+                      .replace(' (国家队选拔)', '')
+                      .replace(' 第一轮', '1')
+                      .replace(' 第二轮', '2')}
+                  </span>
+                ))}
+              {student.lastContestStatus === 'FAILED' && student.lastContestName && (
+                <span
+                  className="rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[9px] font-bold text-red-700"
+                  title={`未晋级: ${student.lastContestName}`}
+                >
+                  未晋级
+                </span>
+              )}
+            </div>
           )}
         </div>
         <div className="flex items-center gap-1">

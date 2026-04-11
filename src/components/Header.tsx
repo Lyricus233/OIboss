@@ -38,6 +38,16 @@ const Header: React.FC<HeaderProps> = ({ gameState, onOpenSaveLoad }) => {
         </div>
 
         {(() => {
+          const currentWeekEvent = CALENDAR_EVENTS[gameState.week];
+          if (currentWeekEvent && currentWeekEvent.type === 'CONTEST') {
+            return (
+              <div className="ml-2 flex animate-pulse items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-bold text-amber-700">
+                <Calendar size={14} />
+                <span>🏆 本周：{currentWeekEvent.name}</span>
+              </div>
+            );
+          }
+
           const nextEventWeek = Object.keys(CALENDAR_EVENTS)
             .map(Number)
             .sort((a, b) => a - b)

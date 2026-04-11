@@ -227,9 +227,9 @@ export const PROVINCES = [
 ];
 
 export const INITIAL_CASH = {
-  TIER1: 500000,
-  PROVINCIAL: 300000,
-  REMOTE: 150000,
+  TIER1: 600000,
+  PROVINCIAL: 400000,
+  REMOTE: 200000,
 };
 
 export const WEEKLY_RENT = {
@@ -432,115 +432,164 @@ export const CALENDAR_EVENTS: Record<number, CalendarEvent> = {
     week: 4,
     name: 'CSP-J/S 第一轮',
     type: 'CONTEST',
-    description: '计算机学会组织的初赛，考察基础知识。',
+    description: '全国青少年信息学奥林匹克联赛初赛，主要考察计算机基础知识和程序阅读能力。',
+    stages: [
+      {
+        name: '笔试',
+        description: '单选题、阅读程序、完善程序',
+        problems: [{ difficulty: 5, quality: 8 }],
+      },
+    ],
   },
   8: {
     week: 8,
     name: 'CSP-J/S 第二轮',
     type: 'CONTEST',
-    description: '复赛，真正的上机编程考验。',
+    description: '联赛复赛，真正的上机编程考验，分为普及组和提高组。',
+    stages: [
+      {
+        name: '上机测试',
+        problems: [
+          { difficulty: 4, quality: 7 },
+          { difficulty: 6, quality: 8 },
+          { difficulty: 7, quality: 8 },
+          { difficulty: 8, quality: 9 },
+        ],
+      },
+    ],
   },
-  12: {
-    week: 12,
+  14: {
+    week: 14,
     name: 'NOIP',
     type: 'CONTEST',
-    description: '全国青少年信息学奥林匹克联赛，通往省队的必经之路。',
+    description: '全国青少年信息学奥林匹克联赛，通往省队的必经之路，题目难度极高。',
+    stages: [
+      {
+        name: '上机测试',
+        problems: [
+          { difficulty: 6, quality: 8 },
+          { difficulty: 7, quality: 9 },
+          { difficulty: 8, quality: 9 },
+          { difficulty: 9, quality: 9 },
+        ],
+      },
+    ],
   },
-  16: {
-    week: 16,
+  22: {
+    week: 22,
     name: 'NOIWC',
     type: 'CONTEST',
-    description: '全国青少年信息学奥林匹克竞赛冬令营',
+    description: '全国青少年信息学奥林匹克竞赛冬令营，高手云集的交流和竞技盛会。',
+    stages: [
+      {
+        name: '测试',
+        problems: [
+          { difficulty: 8, quality: 9 },
+          { difficulty: 9, quality: 9 },
+          { difficulty: 10, quality: 9 },
+        ],
+      },
+    ],
   },
-  20: {
-    week: 20,
+  28: {
+    week: 28,
     name: '省队选拔',
     type: 'CONTEST',
-    description: '选拔各省参加全国赛的代表队',
+    description: '各省选拔参加全国赛代表队的残酷淘汰赛，只有最顶尖的选手才能突围。',
     stages: [
       {
         name: 'Day 1',
         description: '第一场',
         problems: [
-          { difficulty: 6, quality: 7 },
-          { difficulty: 7, quality: 7 },
-          { difficulty: 8, quality: 8 },
+          { difficulty: 7, quality: 8 },
+          { difficulty: 8, quality: 9 },
+          { difficulty: 9, quality: 9 },
         ],
       },
       {
         name: 'Day 2',
         description: '第二场',
         problems: [
-          { difficulty: 7, quality: 7 },
           { difficulty: 8, quality: 8 },
-          { difficulty: 9, quality: 6 },
+          { difficulty: 9, quality: 9 },
+          { difficulty: 10, quality: 8 },
         ],
       },
     ],
   },
-  25: {
-    week: 25,
+  34: {
+    week: 34,
     name: 'APIO',
     type: 'CONTEST',
-    description: '亚太地区信息学奥林匹克竞赛',
+    description: '亚太地区信息学奥林匹克竞赛，与亚洲顶尖选手同台竞技。',
+    stages: [
+      {
+        name: '测试',
+        problems: [
+          { difficulty: 8, quality: 9 },
+          { difficulty: 9, quality: 10 },
+          { difficulty: 10, quality: 9 },
+        ],
+      },
+    ],
   },
-  30: {
-    week: 30,
+  40: {
+    week: 40,
     name: 'NOI',
     type: 'CONTEST',
-    description: '全国信息学奥林匹克竞赛',
+    description: '全国信息学奥林匹克竞赛，决定保送清北资格的终极对决。',
     stages: [
       {
         name: 'Day 1',
-        description: '笔试 + 第一场上机',
+        description: '第一场上机',
         problems: [
-          { difficulty: 7, quality: 9 },
           { difficulty: 8, quality: 9 },
-          { difficulty: 9, quality: 9 },
+          { difficulty: 9, quality: 10 },
+          { difficulty: 10, quality: 9 },
         ],
       },
       {
         name: 'Day 2',
         description: '第二场上机',
         problems: [
-          { difficulty: 8, quality: 9 },
           { difficulty: 9, quality: 9 },
-          { difficulty: 10, quality: 8 },
+          { difficulty: 10, quality: 10 },
+          { difficulty: 11, quality: 9 },
         ],
       },
     ],
   },
-  35: {
-    week: 35,
+  44: {
+    week: 44,
     name: 'CTS (国家队选拔)',
     type: 'CONTEST',
-    description: '选拔国家队成员，题目难度极高。',
+    description: '选拔代表中国参加世界赛的四人国家队成员，题目堪称魔鬼难度。',
     stages: [
       {
         name: 'Day 1',
         description: '第一场测试',
         problems: [
-          { difficulty: 9, quality: 8 },
-          { difficulty: 10, quality: 8 },
-          { difficulty: 10, quality: 7 },
+          { difficulty: 10, quality: 9 },
+          { difficulty: 10, quality: 10 },
+          { difficulty: 11, quality: 9 },
         ],
       },
       {
         name: 'Day 2',
         description: '第二场测试',
         problems: [
-          { difficulty: 9, quality: 8 },
-          { difficulty: 10, quality: 8 },
-          { difficulty: 10, quality: 6 },
+          { difficulty: 10, quality: 9 },
+          { difficulty: 11, quality: 10 },
+          { difficulty: 12, quality: 9 },
         ],
       },
     ],
   },
-  42: {
-    week: 42,
+  48: {
+    week: 48,
     name: 'IOI',
     type: 'CONTEST',
-    description: '国际信息学奥林匹克竞赛',
+    description: '国际信息学奥林匹克竞赛，全世界OIer的最高殿堂。',
     stages: [
       {
         name: 'Day 1',
@@ -548,7 +597,7 @@ export const CALENDAR_EVENTS: Record<number, CalendarEvent> = {
         problems: [
           { difficulty: 10, quality: 10 },
           { difficulty: 11, quality: 10 },
-          { difficulty: 11, quality: 9 },
+          { difficulty: 12, quality: 9 },
         ],
       },
       {
@@ -557,7 +606,7 @@ export const CALENDAR_EVENTS: Record<number, CalendarEvent> = {
         problems: [
           { difficulty: 10, quality: 10 },
           { difficulty: 11, quality: 10 },
-          { difficulty: 12, quality: 9 },
+          { difficulty: 12, quality: 10 },
         ],
       },
     ],

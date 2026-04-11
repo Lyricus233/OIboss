@@ -51,6 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ gameState, onRename, onDismiss }) => 
                 student={student}
                 onRename={(newName) => onRename(student.id, newName)}
                 onDismiss={() => onDismiss(student.id)}
+                hideContestStatus={!!gameState.currentContestResult}
               />
             ))}
           </div>
