@@ -63,6 +63,7 @@ export interface ContestResult {
   logMessage?: string;
   logType?: 'success' | 'danger' | 'warning' | 'info';
   medalsWon?: number;
+  hasAdvancement?: boolean;
 }
 
 export interface GameState {

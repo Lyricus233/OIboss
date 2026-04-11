@@ -1544,12 +1544,15 @@ export const useGameLogic = () => {
       growth += Math.random() * 0.4 - 0.1;
       growth = Math.max(0, growth);
 
-      if (tags.includes('卷王')) student.stress += 2;
-      if (tags.includes('勤奋')) student.stress += 1;
+      let stressGain = 1.0 + s.coachLevel * 0.4;
+      if (tags.includes('卷王')) stressGain += 2;
+      if (tags.includes('勤奋')) stressGain += 1;
 
-      if (tags.includes('摸鱼')) student.stress = Math.max(0, student.stress - 1);
-      if (tags.includes('迟钝')) student.stress = Math.max(0, student.stress - 2);
-      if (tags.includes('活泼')) student.stress = Math.max(0, student.stress - 1);
+      if (tags.includes('摸鱼')) stressGain -= 1;
+      if (tags.includes('迟钝')) stressGain -= 2;
+      if (tags.includes('活泼')) stressGain -= 1;
+
+      student.stress = Math.max(0, student.stress + stressGain);
 
       if (tags.includes('社牛')) totalSatisfactionBonus += 0.5;
       if (tags.includes('活泼')) totalSatisfactionBonus += 0.8;
@@ -1794,7 +1797,10 @@ export const useGameLogic = () => {
               : [70, 62, 54, 46, 40, 34];
         const base =
           progressiveBaseByIndex[Math.min(progressiveBaseByIndex.length - 1, problemIndex)] || 50;
-        const difficultyAdjust = (problem.difficulty - 6) * 3.8;
+        let difficultyAdjust = (problem.difficulty - 6) * 4.0;
+        if (problem.difficulty >= 8) {
+          difficultyAdjust += Math.pow(problem.difficulty - 7, 1.5) * 6;
+        }
         const qualityAdjust = (problem.quality - 7) * 1.5;
         const noise = getNoise(tags, 8);
         const score =
@@ -1885,7 +1891,9 @@ export const useGameLogic = () => {
       if (profile.mode === 'CSP2' && group === 'BEGINNER')
         baseCutoff = Math.max(0, baseCutoff - 20);
 
-      groupCutoffScores[group] = baseCutoff;
+      if (!['NOIWC', 'APIO', 'CTT', 'IOI'].includes(profile.mode)) {
+        groupCutoffScores[group] = baseCutoff;
+      }
     });
 
     if (profile.mode === 'NOIP') {
@@ -1998,32 +2006,23 @@ export const useGameLogic = () => {
       };
       const ratios = getAwardRatios();
 
+      const isNationalHighLevel = ['NOIWC', 'APIO', 'NOI', 'CTT', 'CTS', 'IOI'].includes(
+        profile.mode
+      );
+
       let lines = { first: 0, second: 0, third: 0 };
-      if (profile.mode === 'NOI') {
-        const passLine = groupCutoffScores[group] ?? Math.floor(totalPossibleScore * 0.65);
-        lines = {
-          first: passLine,
-          second: Math.floor(passLine * 0.7),
-          third: Math.floor(passLine * 0.5),
-        };
-        groupAwardLines[group] = lines;
-      } else if (profile.mode === 'IOI') {
-        const firstLimit = Math.max(1, Math.floor(groupRows.length * ratios!.first));
-        const secondLimit = Math.max(firstLimit + 1, Math.floor(groupRows.length * ratios!.second));
-        const thirdLimit = Math.max(secondLimit + 1, Math.floor(groupRows.length * ratios!.third));
 
-        const rankFirstScore =
-          groupRows[Math.min(groupRows.length - 1, firstLimit - 1)]?.totalScore ?? 0;
-        const rankSecondScore =
-          groupRows[Math.min(groupRows.length - 1, secondLimit - 1)]?.totalScore ?? 0;
-        const rankThirdScore =
-          groupRows[Math.min(groupRows.length - 1, thirdLimit - 1)]?.totalScore ?? 0;
+      if (isNationalHighLevel) {
+        const baseLines = getBaseAwardLines(group);
+        const applyNoise = (val: number) => Math.round(val * (0.95 + Math.random() * 0.1));
 
         lines = {
-          first: rankFirstScore,
-          second: rankSecondScore,
-          third: rankThirdScore,
+          first: applyNoise(baseLines.first),
+          second: applyNoise(baseLines.second),
+          third: applyNoise(baseLines.third),
         };
+        if (lines.second >= lines.first) lines.second = Math.max(0, lines.first - 3);
+        if (lines.third >= lines.second) lines.third = Math.max(0, lines.second - 3);
         groupAwardLines[group] = lines;
       } else {
         const firstLimit = Math.max(1, Math.ceil(groupRows.length * ratios!.first));
@@ -2164,6 +2163,7 @@ export const useGameLogic = () => {
       logMessage: logMsg,
       logType,
       medalsWon,
+      hasAdvancement: profile.hasAdvancement,
     };
     return true;
   };

@@ -1591,6 +1591,131 @@ export const RANDOM_EVENTS = [
     ],
   },
   {
+    id: 'top_student_visit',
+    title: '集训队大佬空降',
+    text: '一位往届进入国家集训队的学长回乡探亲，你是否有意向花钱请他来机构做几天特训指导？',
+    minWeek: 15,
+    options: [
+      {
+        id: 'invite',
+        label: '花费 10000 元重金邀请指导',
+        outcomes: [
+          {
+            weight: 70,
+            description: '大佬的经验分享和代码技巧让学员们茅塞顿开，整体能力大幅提升！',
+            effects: { money: -10000, studentAbility: +5, reputation: +3, studentSatisfaction: +5 },
+            type: 'success',
+          },
+          {
+            weight: 30,
+            description: '大佬讲的东西太深奥，只有少数几个天才听懂了，大部分学员一头雾水。',
+            effects: { money: -10000, studentAbility: +2, bossStress: +2 },
+            type: 'warning',
+          },
+        ],
+      },
+      {
+        id: 'ignore',
+        label: '算了，机构不需要',
+        outcomes: [
+          {
+            weight: 100,
+            description: '你省下了一笔钱，但错失了一次让学生开阔眼界的机会。',
+            effects: { bossStress: -1 },
+            type: 'info',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'flu_outbreak',
+    title: '流感爆发',
+    text: '最近机房里流感肆虐，学生们接连咳嗽发烧，甚至有几个人请假了。',
+    minWeek: 5,
+    options: [
+      {
+        id: 'disinfect',
+        label: '紧急停课消杀，买营养品（花费 3000 元）',
+        outcomes: [
+          {
+            weight: 70,
+            description: '及时的消杀控制了病情，营养品也让家长觉得你们很贴心。',
+            effects: { money: -3000, reputation: +2, studentSatisfaction: +5 },
+            type: 'success',
+          },
+          {
+            weight: 30,
+            description: '消杀之后依然有学生断断续续地生病，训练进度受了些影响。',
+            effects: { money: -3000, studentAbility: -3, bossStress: +4 },
+            type: 'warning',
+          },
+        ],
+      },
+      {
+        id: 'ignore',
+        label: '带病坚持，OIer 没有节假日！',
+        outcomes: [
+          {
+            weight: 100,
+            description: '机房成了毒圈，大家全病倒了。不仅训练效率暴跌，还被家长们联合投诉！',
+            effects: {
+              studentAbility: -5,
+              studentSatisfaction: -15,
+              reputation: -5,
+              bossStress: +8,
+            },
+            type: 'danger',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'game_addiction',
+    title: '沉迷游戏',
+    text: '你偶然发现机房里有几个学生在偷偷联机玩游戏，而且最近这股风气正在蔓延。',
+    minWeek: 8,
+    options: [
+      {
+        id: 'strict',
+        label: '严厉整顿，没收设备',
+        outcomes: [
+          {
+            weight: 60,
+            description: '高压管控下，学习氛围恢复了正常，但学生们在背地里骂你暴政。',
+            effects: { studentAbility: +1, studentSatisfaction: -10, bossStress: +3 },
+            type: 'warning',
+          },
+          {
+            weight: 40,
+            description: '这招激起了学生的逆反心理，有的学生甚至故意在做题时摸鱼抗议。',
+            effects: { studentAbility: -2, studentSatisfaction: -15, bossStress: +5 },
+            type: 'danger',
+          },
+        ],
+      },
+      {
+        id: 'guide',
+        label: '晓之以理，举办算法游戏化对抗赛',
+        outcomes: [
+          {
+            weight: 80,
+            description: '你把游戏的对抗性引入了模拟赛，学生们胜负欲爆棚，刷题刷疯了！',
+            effects: { studentAbility: +3, studentSatisfaction: +8, coachMorale: +5 },
+            type: 'success',
+          },
+          {
+            weight: 20,
+            description: '对抗赛变成了另一种形式的“游戏”，大家为了赢甚至互相干扰。',
+            effects: { studentAbility: -1, studentSatisfaction: -5, bossStress: +3 },
+            type: 'warning',
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: 'parent_chat',
     title: '家长来访',
     text: '家长有些话想对你说...',

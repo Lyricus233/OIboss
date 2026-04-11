@@ -555,17 +555,19 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
                           </span>
                         </div>
                         <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1.5 text-xs text-slate-600">
-                          三等率{' '}
+                          三等奖{' '}
                           <span className="font-bold text-emerald-600">
                             {groupItem.thirdRate.toFixed(1)}%
                           </span>
                         </div>
-                        <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1.5 text-xs text-slate-600">
-                          过线率{' '}
-                          <span className="font-bold text-rose-600">
-                            {groupItem.passRate.toFixed(1)}%
-                          </span>
-                        </div>
+                        {result.hasAdvancement && (
+                          <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1.5 text-xs text-slate-600">
+                            过线率{' '}
+                            <span className="font-bold text-rose-600">
+                              {groupItem.passRate.toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
