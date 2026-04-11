@@ -1845,7 +1845,7 @@ export const useGameLogic = () => {
     const getCompetitionCutoff = (mode: ContestMode, type: string, totalMax: number) => {
       const cutoffMap: Record<string, Record<string, number>> = {
         CSP1: { strong: 0.7, normal: 0.6, weak: 0.5 },
-        CSP2: { strong: 0.5, normal: 0.4, weak: 0.3 },
+        CSP2: { strong: 0.6, normal: 0.5, weak: 0.4 },
         NOIP: { strong: 0.55, normal: 0.45, weak: 0.35 },
         PROVINCIAL: { strong: 0.45, normal: 0.35, weak: 0.25 },
         NOI: { strong: 0.65, normal: 0.65, weak: 0.65 },
