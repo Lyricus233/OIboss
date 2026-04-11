@@ -21,6 +21,7 @@ interface LiveStudentState {
   totalScore: number;
   finalTotal: number;
   rank: number;
+  isRecommended?: boolean;
 }
 
 interface LiveLog {
@@ -34,7 +35,7 @@ const GROUP_LABEL: Record<GroupFilter, string> = {
   ALL: '全部',
   BEGINNER: '普及组',
   INTERMEDIATE: '提高组',
-  OPEN: 'NOIP组',
+  OPEN: '公开组',
 };
 
 const rankClass = (rank: number) => {
@@ -98,6 +99,7 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
         totalScore: 0,
         finalTotal: p.totalScore,
         rank: 0,
+        isRecommended: p.isRecommended,
       }))
     )
   );
@@ -249,6 +251,7 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
           totalScore: p.totalScore,
           finalTotal: p.totalScore,
           rank: p.rank,
+          isRecommended: p.isRecommended,
         }))
       )
     );
@@ -272,10 +275,10 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
     if (result.groupCutoffScores) {
       const chunks: string[] = [];
       if (typeof result.groupCutoffScores.INTERMEDIATE === 'number') {
-        chunks.push(`提高组线 ${result.groupCutoffScores.INTERMEDIATE}`);
+        chunks.push(`提高组晋级线 ${result.groupCutoffScores.INTERMEDIATE}`);
       }
       if (typeof result.groupCutoffScores.BEGINNER === 'number') {
-        chunks.push(`普及组线 ${result.groupCutoffScores.BEGINNER}`);
+        chunks.push(`普及组晋级线 ${result.groupCutoffScores.BEGINNER}`);
       }
       if (typeof result.groupCutoffScores.OPEN === 'number') {
         chunks.push(`分数线 ${result.groupCutoffScores.OPEN}`);
@@ -393,6 +396,11 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
                           </span>
                           <span className="text-sm font-bold text-slate-800">
                             {student.studentName}
+                            {student.isRecommended && (
+                              <span className="ml-1 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+                                推荐名额
+                              </span>
+                            )}
                           </span>
                           <span className="text-xs text-slate-400">
                             {GROUP_LABEL[student.contestGroup]}
@@ -402,18 +410,47 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
                           {student.totalScore}
                         </span>
                       </div>
-                      <div className="mt-2 grid grid-cols-4 gap-1">
-                        {student.currentScores.map((score, idx) => (
+                      <div className="mt-2 flex flex-col gap-2">
+                        {Object.entries(
+                          student.currentScores.reduce(
+                            (acc, score, idx) => {
+                              const stage = result.problems[idx]?.stageName || 'Day 1';
+                              if (!acc[stage]) acc[stage] = { scores: [], subtotal: 0 };
+                              acc[stage].scores.push({ score, idx });
+                              acc[stage].subtotal += score;
+                              return acc;
+                            },
+                            {} as Record<
+                              string,
+                              { scores: { score: number; idx: number }[]; subtotal: number }
+                            >
+                          )
+                        ).map(([stage, { scores, subtotal }]) => (
                           <div
-                            key={`${student.studentId}-${idx}`}
-                            className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-center"
+                            key={`${student.studentId}-${stage}`}
+                            className="flex flex-col gap-1"
                           >
-                            <div className="text-[10px] text-slate-400">
-                              {result.problems[idx]?.label || `T${idx + 1}`}
+                            <div className="flex items-center justify-between px-1">
+                              <span className="text-xs font-bold text-slate-600">{stage}</span>
+                              <span className="font-mono text-xs font-medium text-indigo-600">
+                                小计: {subtotal}
+                              </span>
                             </div>
-                            <div className="font-mono text-xs font-bold text-slate-700">
-                              {score}
-                              <span className="text-slate-400">/100</span>
+                            <div className="grid grid-cols-4 gap-1">
+                              {scores.map(({ score, idx }) => (
+                                <div
+                                  key={`${student.studentId}-${idx}`}
+                                  className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-center"
+                                >
+                                  <div className="text-[10px] text-slate-400">
+                                    {result.problems[idx]?.label || `T${idx + 1}`}
+                                  </div>
+                                  <div className="font-mono text-xs font-bold text-slate-700">
+                                    {score}
+                                    <span className="text-slate-400">/100</span>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         ))}
@@ -451,6 +488,11 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
                               <td className="px-2 py-1.5 font-mono text-slate-700">#{row.rank}</td>
                               <td className="px-2 py-1.5 font-medium text-slate-800">
                                 {row.studentName}
+                                {row.isRecommended && (
+                                  <span className="ml-1 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+                                    推荐名额
+                                  </span>
+                                )}
                               </td>
                               <td className="px-2 py-1.5 text-slate-500">
                                 {GROUP_LABEL[row.contestGroup]}

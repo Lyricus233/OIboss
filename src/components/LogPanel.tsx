@@ -13,7 +13,7 @@ const LogPanel: React.FC<LogPanelProps> = ({ gameState }) => {
 
   useEffect(() => {
     if (scrollLogRef.current) {
-      scrollLogRef.current.scrollTop = scrollLogRef.current.scrollHeight;
+      scrollLogRef.current.scrollTop = 0;
     }
   }, [gameState.history]);
 
@@ -62,7 +62,7 @@ const LogPanel: React.FC<LogPanelProps> = ({ gameState }) => {
           </h3>
         </div>
         <div className="flex-1 space-y-2 overflow-y-auto p-2" ref={scrollLogRef}>
-          {gameState.history.map((log) => (
+          {[...gameState.history].reverse().map((log) => (
             <div
               key={log.id}
               className={`rounded border p-2 text-xs ${

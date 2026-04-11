@@ -479,7 +479,8 @@ export const CALENDAR_EVENTS: Record<number, CalendarEvent> = {
     week: 22,
     name: 'NOIWC',
     type: 'CONTEST',
-    description: '全国青少年信息学奥林匹克竞赛冬令营，高手云集的交流和竞技盛会。',
+    description:
+      '全国青少年信息学奥林匹克竞赛冬令营，高手云集的竞技盛会，CSP成绩优异者可获邀请，也是通往省选的关键跳板。',
     stages: [
       {
         name: '测试',
@@ -554,6 +555,54 @@ export const CALENDAR_EVENTS: Record<number, CalendarEvent> = {
         problems: [
           { difficulty: 9, quality: 9 },
           { difficulty: 10, quality: 10 },
+          { difficulty: 11, quality: 9 },
+        ],
+      },
+    ],
+  },
+  42: {
+    week: 42,
+    name: 'CTT-day1-2',
+    type: 'CONTEST',
+    description: '国家集训队训练第1-2天，高强度的国家队选拔前哨战。',
+    stages: [
+      {
+        name: 'Day 1',
+        problems: [
+          { difficulty: 9, quality: 9 },
+          { difficulty: 10, quality: 9 },
+          { difficulty: 10, quality: 10 },
+        ],
+      },
+      {
+        name: 'Day 2',
+        problems: [
+          { difficulty: 9, quality: 9 },
+          { difficulty: 10, quality: 10 },
+          { difficulty: 11, quality: 9 },
+        ],
+      },
+    ],
+  },
+  43: {
+    week: 43,
+    name: 'CTT-day3-4',
+    type: 'CONTEST',
+    description: '国家集训队训练第3-4天，持续高压考察选手的稳定性。',
+    stages: [
+      {
+        name: 'Day 3',
+        problems: [
+          { difficulty: 10, quality: 9 },
+          { difficulty: 10, quality: 10 },
+          { difficulty: 11, quality: 9 },
+        ],
+      },
+      {
+        name: 'Day 4',
+        problems: [
+          { difficulty: 10, quality: 9 },
+          { difficulty: 11, quality: 10 },
           { difficulty: 11, quality: 9 },
         ],
       },
@@ -650,21 +699,23 @@ export const AGENCY_ACTIONS = [
         weight: 50,
         description: '集训效果显著，学生能力大幅提升！',
         effects: {
-          reputation: +5,
-          studentSatisfaction: +5,
+          reputation: +8,
+          studentSatisfaction: +8,
           coachMorale: -3,
           bossStress: +8,
+          studentAbility: +3,
         },
         type: 'success',
       },
       {
         weight: 40,
-        description: '集训顺利结束，无功无过。',
+        description: '集训顺利结束，大家的实力稳步增长。',
         effects: {
-          reputation: +2,
-          studentSatisfaction: +2,
+          reputation: +3,
+          studentSatisfaction: +4,
           coachMorale: -5,
           bossStress: +8,
+          studentAbility: +3,
         },
         type: 'info',
       },
@@ -672,10 +723,11 @@ export const AGENCY_ACTIONS = [
         weight: 10,
         description: '有学生吐槽伙食太差，家长群里有怨言。',
         effects: {
-          reputation: -2,
-          studentSatisfaction: -5,
+          reputation: -3,
+          studentSatisfaction: -8,
           coachMorale: -8,
           bossStress: +12,
+          studentAbility: +1,
         },
         type: 'danger',
       },
@@ -731,19 +783,19 @@ export const AGENCY_ACTIONS = [
       {
         weight: 40,
         description: '神预测！模拟赛押中了原题！',
-        effects: { reputation: +8, coachMorale: +5 },
+        effects: { reputation: +8, coachMorale: +5, studentAbility: +2 },
         type: 'success',
       },
       {
         weight: 50,
         description: '题库得到了充实。',
-        effects: { reputation: +3, coachMorale: +2 },
+        effects: { reputation: +3, coachMorale: +2, studentAbility: +1 },
         type: 'info',
       },
       {
         weight: 10,
         description: '题目出太难了，被学生在网上吐槽。',
-        effects: { reputation: -1, coachMorale: -2 },
+        effects: { reputation: -1, coachMorale: -2, studentAbility: +0.5 },
         type: 'warning',
       },
     ],
@@ -872,24 +924,30 @@ export const RANDOM_EVENTS = [
     ],
   },
   {
-    id: 'medal',
-    title: '学生喜提省选金牌',
-    text: '你的老学员在省选中拿了金牌，家长朋友圈开始自发宣传。',
+    id: 'prize',
+    title: '某个学生得了大奖',
+    text: '你的一个学生在全市级的算法比赛里拿了第一名，家长们奔走相告。',
     minWeek: 8,
     options: [
       {
-        id: 'market',
-        label: '立刻做宣传海报和推文',
+        id: 'advertise',
+        label: '大肆宣传，拉大横幅',
         outcomes: [
           {
-            weight: 70,
-            description: '你连夜做了喜报，招生咨询电话被打爆。',
+            weight: 60,
+            description: '你立刻挂起红色大横幅，门口围满了咨询的家长！',
             effects: { reputation: +6, potentialStudents: +10, money: -3000 },
             type: 'success',
           },
           {
-            weight: 30,
-            description: '宣传用力过猛，被同行举报夸大宣传。',
+            weight: 20,
+            description: '虽然挂了横幅，但刚好下暴雨，没什么人看见。',
+            effects: { reputation: +3, potentialStudents: +5 },
+            type: 'warning',
+          },
+          {
+            weight: 20,
+            description: '宣传用力过猛，被同行举报虚假宣传。',
             effects: { reputation: -2, money: -5000, bossStress: +5 },
             type: 'warning',
           },
@@ -982,8 +1040,8 @@ export const RANDOM_EVENTS = [
         outcomes: [
           {
             weight: 60,
-            description: '你拿出了学员合同和缴费记录，成功证明清白。',
-            effects: { reputation: +3, bossStress: +3 },
+            description: '你拿出了学员合同和缴费记录，成功证明清白。并且借此机会展示了机构专业度。',
+            effects: { reputation: +5, bossStress: +3 },
             type: 'success',
           },
           {

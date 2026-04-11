@@ -8,9 +8,17 @@ interface SidebarProps {
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
   onRename: (id: string, newName: string) => void;
   onDismiss: (id: string) => void;
+  onToggleRecommendation: (id: string) => void;
+  getRecommendationQuota: (state: GameState) => number;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ gameState, onRename, onDismiss }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  gameState,
+  onRename,
+  onDismiss,
+  onToggleRecommendation,
+  getRecommendationQuota,
+}) => {
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
     省选组: false,
     提高组: false,
@@ -23,6 +31,9 @@ const Sidebar: React.FC<SidebarProps> = ({ gameState, onRename, onDismiss }) => 
       [group]: !prev[group],
     }));
   };
+
+  const totalQuota = getRecommendationQuota(gameState);
+  const usedQuota = gameState.usedRecommendationQuota || 0;
 
   const groupedStudents = {
     省选组: gameState.students.filter((s) => s.tier === 'ADVANCED'),
@@ -52,6 +63,11 @@ const Sidebar: React.FC<SidebarProps> = ({ gameState, onRename, onDismiss }) => 
                 onRename={(newName) => onRename(student.id, newName)}
                 onDismiss={() => onDismiss(student.id)}
                 hideContestStatus={!!gameState.currentContestResult}
+                onToggleRecommendation={() => onToggleRecommendation(student.id)}
+                canRecommend={
+                  gameState.week < 8 && !student.passedContests?.includes('CSP-J/S 第一轮')
+                }
+                isRecommended={student.isRecommended}
               />
             ))}
           </div>
@@ -63,10 +79,17 @@ const Sidebar: React.FC<SidebarProps> = ({ gameState, onRename, onDismiss }) => 
   return (
     <div className="col-span-3 flex h-full min-h-0 flex-col gap-3 overflow-hidden">
       <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <h2 className="mb-2 flex items-center gap-1 text-sm font-bold tracking-wider text-slate-400 uppercase">
-          <Users size={14} /> 学生列表
+        <h2 className="mb-2 flex items-center justify-between text-sm font-bold tracking-wider text-slate-400 uppercase">
+          <span className="flex items-center gap-1">
+            <Users size={14} /> 学生列表
+          </span>
         </h2>
         <div className="text-xs text-slate-500">管理你的学生，关注他们的状态。</div>
+        {totalQuota > 0 && gameState.week < 8 && (
+          <div className="mt-2 rounded bg-orange-50 px-2 py-1 text-xs font-medium text-orange-600">
+            初赛推荐名额: {usedQuota} / {totalQuota}
+          </div>
+        )}
       </div>
 
       {/* Student List */}

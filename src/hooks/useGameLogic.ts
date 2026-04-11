@@ -99,7 +99,8 @@ export const generateStudent = (
   customName?: string,
   existingNames: Set<string> = new Set(),
   provinceId?: string,
-  forceGenius: boolean = false
+  forceGenius: boolean = false,
+  currentWeek: number = 1
 ): Student => {
   const fullName =
     generateUniqueFullName(existingNames, { provinceId, customName }) ||
@@ -154,6 +155,52 @@ export const generateStudent = (
     finalCost *= 2.5;
   }
 
+  const passedContests: string[] = [];
+  let lastAdvancementContest;
+  let lastAdvancementStatus: 'PASSED' | 'FAILED' | undefined;
+
+  if (currentWeek > 4) {
+    if (Math.random() < 0.7) {
+      const passCSP1Chance = Math.max(0, Math.min(1, (ability - 30) / 50));
+      if (Math.random() < passCSP1Chance || tier === 'ADVANCED') {
+        passedContests.push('CSP-J/S 第一轮');
+        lastAdvancementContest = 'CSP-J/S 第一轮';
+        lastAdvancementStatus = 'PASSED' as const;
+
+        if (currentWeek > 8) {
+          if (Math.random() < 0.85) {
+            const passCSP2Chance = Math.max(0, Math.min(1, (ability - 45) / 45));
+            if (Math.random() < passCSP2Chance || tier === 'ADVANCED') {
+              passedContests.push('CSP-J/S 第二轮');
+              lastAdvancementContest = 'CSP-J/S 第二轮';
+              lastAdvancementStatus = 'PASSED' as const;
+
+              if (currentWeek > 14) {
+                if (Math.random() < 0.9) {
+                  const passNOIPChance = Math.max(0, Math.min(1, (ability - 65) / 30));
+                  if (Math.random() < passNOIPChance) {
+                    passedContests.push('NOIP');
+                    lastAdvancementContest = 'NOIP';
+                    lastAdvancementStatus = 'PASSED' as const;
+                  } else {
+                    lastAdvancementContest = 'NOIP';
+                    lastAdvancementStatus = 'FAILED' as const;
+                  }
+                }
+              }
+            } else {
+              lastAdvancementContest = 'CSP-J/S 第二轮';
+              lastAdvancementStatus = 'FAILED' as const;
+            }
+          }
+        }
+      } else {
+        lastAdvancementContest = 'CSP-J/S 第一轮';
+        lastAdvancementStatus = 'FAILED' as const;
+      }
+    }
+  }
+
   return {
     id,
     name: fullName,
@@ -164,6 +211,9 @@ export const generateStudent = (
     stress: 20,
     tags: tags,
     cost: finalCost,
+    passedContests,
+    lastAdvancementContest,
+    lastAdvancementStatus,
   };
 };
 
@@ -197,6 +247,7 @@ type ContestMode =
   | 'PROVINCIAL'
   | 'APIO'
   | 'NOI'
+  | 'CTT'
   | 'CTS'
   | 'IOI'
   | 'GENERAL';
@@ -221,6 +272,7 @@ const buildContestProfile = (event: CalendarEvent): ContestProfile => {
   else if (name.includes('NOIWC')) mode = 'NOIWC';
   else if (name.includes('省队选拔')) mode = 'PROVINCIAL';
   else if (name.includes('APIO')) mode = 'APIO';
+  else if (name.includes('CTT')) mode = 'CTT';
   else if (name.includes('CTS')) mode = 'CTS';
   else if (name.includes('IOI')) mode = 'IOI';
   else if (name.includes('NOI')) mode = 'NOI';
@@ -343,6 +395,22 @@ const buildContestProfile = (event: CalendarEvent): ContestProfile => {
               label: `T${idx + 1}`,
               difficulty,
               quality: randomInt(8, 10),
+            })),
+    };
+  }
+
+  if (mode === 'CTT') {
+    return {
+      mode,
+      hasAdvancement: true,
+      problems:
+        problems.length > 0
+          ? problems
+          : [9, 10, 10, 10, 11, 11].map((difficulty, idx) => ({
+              id: `${event.week}-p${idx + 1}`,
+              label: `T${idx + 1}`,
+              difficulty,
+              quality: randomInt(9, 10),
             })),
     };
   }
@@ -677,20 +745,10 @@ export const useGameLogic = () => {
       parts.push(`潜在生源${effects.potentialStudents > 0 ? '+' : ''}${effects.potentialStudents}`);
     if (effects.fixedCost)
       parts.push(`固定成本${effects.fixedCost > 0 ? '+' : ''}${effects.fixedCost}`);
+    if (effects.studentAbility)
+      parts.push(`全员能力${effects.studentAbility > 0 ? '+' : ''}${effects.studentAbility}`);
 
-    if (effects.advancedStudents)
-      parts.push(`省队选手${effects.advancedStudents > 0 ? '+' : ''}${effects.advancedStudents}`);
-    if (effects.intermediateStudents)
-      parts.push(
-        `提高组学生${effects.intermediateStudents > 0 ? '+' : ''}${effects.intermediateStudents}`
-      );
-    if (effects.beginnerStudents)
-      parts.push(`普及组学生${effects.beginnerStudents > 0 ? '+' : ''}${effects.beginnerStudents}`);
-    if (effects.students) parts.push(`学生${effects.students > 0 ? '+' : ''}${effects.students}`);
-
-    if (effects.geniusStudent) parts.push(`🌟天赋怪学生+1`);
-
-    return parts.length > 0 ? `「${parts.join('，')}」` : '';
+    return parts.length > 0 ? ` (${parts.join(', ')})` : '';
   };
 
   const applyEffects = (s: GameState, effects: any) => {
@@ -706,7 +764,9 @@ export const useGameLogic = () => {
     ) => {
       if (s.students.length >= s.maxStudents) return false;
       const existingNames = new Set(s.students.map((st) => st.name));
-      s.students.push(generateStudent(id, tier, undefined, existingNames, s.province, forceGenius));
+      s.students.push(
+        generateStudent(id, tier, undefined, existingNames, s.province, forceGenius, s.week)
+      );
       return true;
     };
     if (effects.money) s.cash += effects.money;
@@ -714,6 +774,11 @@ export const useGameLogic = () => {
     if (effects.coachMorale) s.coachMorale += effects.coachMorale;
     if (effects.studentSatisfaction) s.studentSatisfaction += effects.studentSatisfaction;
     if (effects.bossStress) s.bossStress += effects.bossStress;
+    if (effects.studentAbility) {
+      s.students.forEach((st) => {
+        st.ability = Math.min(100, st.ability + effects.studentAbility);
+      });
+    }
 
     if (effects.geniusStudent) {
       const geniusId = `genius-${s.totalWeeks}-${s.students.length}`;
@@ -861,6 +926,44 @@ export const useGameLogic = () => {
     ensureUniqueStudentNames(s);
   };
 
+  const getRecommendationQuota = (state: GameState) => {
+    if (state.reputation >= 120) return 3;
+    if (state.reputation >= 80) return 2;
+    if (state.reputation >= 40) return 1;
+    return 0;
+  };
+
+  const toggleRecommendation = (id: string) => {
+    setGameState((prev) => {
+      const s = { ...prev };
+      const studentIndex = s.students.findIndex((st) => st.id === id);
+      if (studentIndex === -1) return prev;
+
+      const student = s.students[studentIndex];
+      const currentlyRecommended = !!student.isRecommended;
+
+      s.students = [...s.students];
+      s.students[studentIndex] = { ...student };
+
+      if (currentlyRecommended) {
+        s.students[studentIndex].isRecommended = false;
+        s.usedRecommendationQuota = Math.max(0, (s.usedRecommendationQuota || 0) - 1);
+        addNotification(s, `已取消 ${student.name} 的推荐名额`, 'info');
+      } else {
+        const totalQuota = getRecommendationQuota(s);
+        const usedQuota = s.usedRecommendationQuota || 0;
+        if (usedQuota >= totalQuota) {
+          addNotification(s, `推荐名额不足，当前声望最多支持 ${totalQuota} 个名额`, 'error');
+          return s;
+        }
+        s.students[studentIndex].isRecommended = true;
+        s.usedRecommendationQuota = usedQuota + 1;
+        addNotification(s, `已为 ${student.name} 分配推荐名额`, 'success');
+      }
+      return s;
+    });
+  };
+
   const executeTraining = (intensity: 'LIGHT' | 'STANDARD' | 'INTENSE' | 'MOCK') => {
     let s = { ...gameState };
     s.status = 'PLAYING';
@@ -902,10 +1005,10 @@ export const useGameLogic = () => {
       const tags = st.tags || [];
 
       if (intensity === 'LIGHT') {
-        abilityGain = 0.2;
-        stressChange = -8;
-        moodChange = 5;
-        if (tags.includes('摸鱼')) {
+        abilityGain = 0.5;
+        stressChange = -10;
+        moodChange = 8;
+        if (tags.includes('懒狗')) {
           stressChange -= 5;
           moodChange += 5;
         }
@@ -914,25 +1017,29 @@ export const useGameLogic = () => {
           moodChange -= 5;
         }
       } else if (intensity === 'STANDARD') {
-        abilityGain = 0.8;
-        stressChange = 3;
+        abilityGain = 2;
+        stressChange = 5;
+        moodChange = -2;
       } else if (intensity === 'INTENSE') {
-        abilityGain = 1.5;
-        stressChange = 12;
-        if (tags.includes('卷王')) abilityGain += 0.5;
-        if (tags.includes('摸鱼')) {
+        abilityGain = 3.5;
+        stressChange = 15;
+        moodChange = -10;
+        if (tags.includes('卷王')) abilityGain += 0.8;
+        if (tags.includes('懒狗')) {
+          stressChange += 15;
+          moodChange -= 15;
+        }
+        if (tags.includes('玻璃心')) {
           stressChange += 10;
           moodChange -= 10;
         }
-        if (tags.includes('玻璃心')) {
-          stressChange += 5;
-        }
       } else if (intensity === 'MOCK') {
-        abilityGain = 0.6;
-        stressChange = 6;
-        if (tags.includes('考霸')) abilityGain += 0.8;
-        if (tags.includes('手速怪')) abilityGain += 0.5;
-        if (tags.includes('大心脏')) stressChange -= 2;
+        abilityGain = 3;
+        stressChange = 8;
+        moodChange = -5;
+        if (tags.includes('考霸')) abilityGain += 1.0;
+        if (tags.includes('大心脏')) stressChange -= 5;
+        if (tags.includes('玻璃心')) stressChange += 5;
       }
 
       // Apply changes
@@ -1412,7 +1519,10 @@ export const useGameLogic = () => {
     let totalSatisfactionBonus = 0;
 
     s.students.forEach((student) => {
-      let growth = student.talent * 0.001 + s.coachLevel * 0.05;
+      const baseGrowth = 0.15 + student.talent * 0.003 + s.coachLevel * 0.18;
+
+      const diminishingFactor = Math.max(0.1, (100 - student.ability) / 100);
+      let growth = baseGrowth * diminishingFactor;
 
       const tags = student.tags || [];
 
@@ -1430,6 +1540,9 @@ export const useGameLogic = () => {
       if (tags.includes('迟钝')) growthMultiplier *= getEffectValue('迟钝', 'train', 0.8);
 
       growth *= growthMultiplier;
+
+      growth += Math.random() * 0.4 - 0.1;
+      growth = Math.max(0, growth);
 
       if (tags.includes('卷王')) student.stress += 2;
       if (tags.includes('勤奋')) student.stress += 1;
@@ -1511,7 +1624,9 @@ export const useGameLogic = () => {
             'BEGINNER',
             undefined,
             existingNames,
-            s.province
+            s.province,
+            false,
+            s.week
           );
           existingNames.add(student.name);
           s.students.push(student);
@@ -1534,7 +1649,7 @@ export const useGameLogic = () => {
       const lost = Math.round(s.students.length * churnBase * Math.random());
       if (lost > 0) {
         s.students.splice(0, lost);
-        addLog(s, `因为满意度不高，本周大约有 ${lost} 名学生悄悄退费或跑路。`, 'danger');
+        addLog(s, `因为满意度不高或压力过大，本周大约有 ${lost} 名学生悄悄退费或跑路。`, 'danger');
       }
     }
 
@@ -1551,20 +1666,38 @@ export const useGameLogic = () => {
     const problems = profile.problems;
     const totalPossibleScore = problems.length * 100;
 
-    let eligibleStudents = s.students.filter((student) => {
-      const history = student.passedContests || [];
-      if (profile.mode === 'CSP2')
-        return history.includes('CSP-J/S 第一轮') || student.tier !== 'BEGINNER';
-      if (profile.mode === 'NOIP')
-        return history.includes('CSP-J/S 第二轮') || student.tier === 'ADVANCED';
-      if (profile.mode === 'PROVINCIAL') return history.includes('NOIP');
-      if (profile.mode === 'NOI') return history.includes('省队选拔');
-      if (profile.mode === 'CTS') return history.includes('NOI');
-      if (profile.mode === 'IOI') return history.includes('CTS (国家队选拔)');
-      return true;
-    });
+    let eligibleStudents: Student[] = [];
+    let bypassedStudentIds: string[] = [];
 
-    const participants = eligibleStudents.sort((a, b) => b.ability - a.ability).slice(0, 30);
+    if (profile.mode === 'CSP2') {
+      bypassedStudentIds = s.students.filter((st) => st.isRecommended).map((st) => st.id);
+      eligibleStudents = s.students.filter(
+        (st) => (st.passedContests || []).includes('CSP-J/S 第一轮') || st.isRecommended
+      );
+
+      // Clear the recommendations after reading them
+      s.usedRecommendationQuota = 0;
+      s.students.forEach((st) => {
+        st.isRecommended = false;
+      });
+    } else {
+      eligibleStudents = s.students.filter((student) => {
+        const history = student.passedContests || [];
+        if (profile.mode === 'CSP1') return !student.isRecommended;
+        if (profile.mode === 'NOIP') return history.includes('CSP-J/S 第二轮');
+        if (profile.mode === 'NOIWC') return history.includes('CSP-J/S 第二轮');
+        if (profile.mode === 'PROVINCIAL') return history.includes('NOIP');
+        if (profile.mode === 'APIO')
+          return history.includes('NOIP_一等奖') || history.includes('CSP2_一等奖');
+        if (profile.mode === 'NOI') return history.includes('省队选拔');
+        if (profile.mode === 'CTT') return history.includes('NOI_一等奖');
+        if (profile.mode === 'CTS') return history.includes('NOI_一等奖');
+        if (profile.mode === 'IOI') return history.includes('CTS (国家队选拔)');
+        return true;
+      });
+    }
+
+    const participants = eligibleStudents.sort((a, b) => b.ability - a.ability);
 
     if (participants.length === 0) {
       addLog(s, `${event.name} 开始了，但机构内没有符合参赛资格的学生。`, 'warning');
@@ -1631,23 +1764,25 @@ export const useGameLogic = () => {
     const results: ContestStudentResult[] = participants.map((student) => {
       const tags = student.tags || [];
       const skillIndex =
-        student.ability * 0.62 +
-        student.talent * 0.23 +
-        s.coachLevel * 4 +
-        clamp(s.reputation, 0, REPUTATION_MAX) * 0.06;
-      const skillDelta = (skillIndex - 58) * 0.48;
+        student.ability * 0.65 +
+        student.talent * 0.2 +
+        s.coachLevel * 5 +
+        clamp(s.reputation, 0, REPUTATION_MAX) * 0.05;
+      const skillDelta = (skillIndex - 58) * 0.75;
       const mentalityDelta = getMentalityDelta(student);
       const contestTagBonus = getContestTagBonus(tags);
 
       const scores = problems.map((problem, problemIndex) => {
         if (profile.mode === 'CSP1') {
-          const baseAround65 = 65;
+          const baseAround65 = 75;
           let noise = getNoise(tags, 10);
           const tail = Math.random();
           if (tail < 0.08) noise -= randomInt(15, 25);
           else if (tail > 0.9) noise += randomInt(12, 25);
 
-          const score = baseAround65 + skillDelta * 1.1 + mentalityDelta + contestTagBonus + noise;
+          const effectiveSkillDelta = skillDelta < 0 ? skillDelta * 0.4 : skillDelta * 0.6;
+          const score =
+            baseAround65 + effectiveSkillDelta * 1.1 + mentalityDelta + contestTagBonus + noise;
           return Math.round(clamp(score, 0, 100));
         }
 
@@ -1681,6 +1816,7 @@ export const useGameLogic = () => {
         problemScores: scores,
         totalScore: scores.reduce((sum, v) => sum + v, 0),
         rank: 0,
+        isRecommended: bypassedStudentIds.includes(student.id),
       };
     });
 
@@ -1701,61 +1837,55 @@ export const useGameLogic = () => {
     let cutoffScore = profile.cutoffScore;
     const groupCutoffScores: Partial<Record<'BEGINNER' | 'INTERMEDIATE' | 'OPEN', number>> = {};
 
+    const getProvinceType = (provinceId?: string) => {
+      const province = PROVINCES.find((p) => p.id === provinceId);
+      return province?.type || 'normal';
+    };
+
+    const getCompetitionCutoff = (mode: ContestMode, type: string, totalMax: number) => {
+      const cutoffMap: Record<string, Record<string, number>> = {
+        CSP1: { strong: 0.7, normal: 0.6, weak: 0.5 },
+        CSP2: { strong: 0.5, normal: 0.4, weak: 0.3 },
+        NOIP: { strong: 0.55, normal: 0.45, weak: 0.35 },
+        PROVINCIAL: { strong: 0.45, normal: 0.35, weak: 0.25 },
+        NOI: { strong: 0.65, normal: 0.65, weak: 0.65 },
+      };
+
+      const basePercentages = cutoffMap[mode];
+      if (!basePercentages) {
+        return Math.floor(totalMax * 0.5);
+      }
+
+      const basePercentage = basePercentages[type] || basePercentages['normal'];
+      let finalPercentage = basePercentage;
+
+      if (mode !== 'NOI') {
+        const fluctuation = 0.12;
+        const randomFactor = 1.0 + (Math.random() * 2 - 1) * fluctuation;
+        finalPercentage = basePercentage * randomFactor;
+      }
+      finalPercentage = Math.max(0.2, Math.min(0.95, finalPercentage));
+      return Math.floor(totalMax * finalPercentage);
+    };
+
+    const provinceType = getProvinceType(s.province);
     const groups: Array<'BEGINNER' | 'INTERMEDIATE' | 'OPEN'> = [
       'BEGINNER',
       'INTERMEDIATE',
       'OPEN',
     ];
+
     groups.forEach((group) => {
       const groupRows = sortedResults.filter((r) => r.contestGroup === group);
       if (groupRows.length === 0) return;
 
-      const range = profile.groupCutoffRanges?.[group] || {
-        min: Math.round(totalPossibleScore * 0.45),
-        max: Math.round(totalPossibleScore * 0.62),
-      };
+      let baseCutoff = getCompetitionCutoff(profile.mode, provinceType, totalPossibleScore);
 
-      if (profile.mode === 'CSP1') {
-        const requiredPass = Math.floor(groupRows.length / 2) + 1;
-        for (let i = 0; i < requiredPass; i++) {
-          if (groupRows[i].totalScore < range.min) {
-            groupRows[i].totalScore = randomInt(range.min, Math.min(range.min + 8, 100));
-            groupRows[i].problemScores[0] = groupRows[i].totalScore;
-          }
-        }
-        sortedResults.sort((a, b) => b.totalScore - a.totalScore);
-        refreshRank();
-        const refreshedGroup = sortedResults.filter((r) => r.contestGroup === group);
-        const passUpperBound = Math.min(
-          range.max,
-          Math.floor(refreshedGroup[requiredPass - 1].totalScore)
-        );
-        groupCutoffScores[group] = randomInt(range.min, Math.max(range.min, passUpperBound));
-      } else {
-        const passRatio =
-          profile.mode === 'CSP2'
-            ? group === 'INTERMEDIATE'
-              ? 0.52
-              : 0.58
-            : profile.mode === 'NOIP'
-              ? 0.5
-              : profile.mode === 'NOIWC'
-                ? 0.42
-                : profile.mode === 'PROVINCIAL'
-                  ? 0.38
-                  : profile.mode === 'APIO'
-                    ? 0.5
-                    : profile.mode === 'NOI'
-                      ? 0.45
-                      : profile.mode === 'CTS'
-                        ? 0.35
-                        : profile.mode === 'IOI'
-                          ? 0.5
-                          : 0.45;
-        const requiredPass = Math.max(1, Math.round(groupRows.length * passRatio));
-        const targetByRank = groupRows[Math.min(groupRows.length - 1, requiredPass - 1)].totalScore;
-        groupCutoffScores[group] = clamp(targetByRank, range.min, range.max);
-      }
+      if (profile.mode === 'CSP1' && group === 'BEGINNER') baseCutoff = Math.max(0, baseCutoff - 5);
+      if (profile.mode === 'CSP2' && group === 'BEGINNER')
+        baseCutoff = Math.max(0, baseCutoff - 20);
+
+      groupCutoffScores[group] = baseCutoff;
     });
 
     if (profile.mode === 'NOIP') {
@@ -1776,9 +1906,34 @@ export const useGameLogic = () => {
         : 0;
     const averageRate = totalPossibleScore > 0 ? (averageScore / totalPossibleScore) * 100 : 0;
     sortedResults.forEach((item) => {
-      const groupCutoff = groupCutoffScores[item.contestGroup];
-      item.passed = typeof groupCutoff === 'number' ? item.totalScore >= groupCutoff : false;
+      if (profile.mode === 'NOIWC' || profile.mode === 'APIO' || profile.mode === 'CTT') {
+        item.passed = true;
+      } else {
+        const groupCutoff = groupCutoffScores[item.contestGroup];
+        item.passed = typeof groupCutoff === 'number' ? item.totalScore >= groupCutoff : false;
+      }
     });
+
+    if (profile.mode === 'NOI') {
+      sortedResults.forEach((item) => {
+        item.passed = item.award === '一等奖';
+      });
+    }
+
+    if (profile.mode === 'CTS') {
+      const openGroup = sortedResults
+        .filter((r) => r.contestGroup === 'OPEN')
+        .sort((a, b) => b.totalScore - a.totalScore);
+      const passLineScore =
+        openGroup.length >= 4
+          ? openGroup[3].totalScore
+          : openGroup[openGroup.length - 1]?.totalScore || 0;
+      sortedResults.forEach((item) => {
+        item.passed =
+          item.totalScore >= passLineScore && item.totalScore >= totalPossibleScore * 0.5;
+      });
+    }
+
     const passedCount = sortedResults.filter((item) => item.passed).length;
 
     const groupAwardLines: Partial<
@@ -1809,7 +1964,7 @@ export const useGameLogic = () => {
       if (profile.mode === 'NOI') {
         return { first: 410, second: 300, third: 180 };
       }
-      if (profile.mode === 'CTS') {
+      if (profile.mode === 'CTS' || profile.mode === 'CTT') {
         return { first: 430, second: 320, third: 220 };
       }
       if (profile.mode === 'IOI') {
@@ -1832,42 +1987,72 @@ export const useGameLogic = () => {
         if (profile.mode === 'CSP1') return { first: 0.15, second: 0.4, third: 0.7 };
         if (profile.mode === 'CSP2') return { first: 0.13, second: 0.38, third: 0.68 };
         if (profile.mode === 'NOIP') return { first: 0.2, second: 0.42, third: 0.67 };
-        if (profile.mode === 'NOI') return { first: 0.17, second: 0.5, third: 0.85 };
-        if (profile.mode === 'IOI') return { first: 1 / 12, second: 0.25, third: 0.5 };
-        if (profile.mode === 'APIO') return { first: 1 / 12, second: 0.25, third: 0.5 };
-        if (profile.mode === 'CTS') return { first: 0.12, second: 0.35, third: 0.65 };
+        if (profile.mode === 'NOI') return null; // dynamically calculated based on pass line
+        if (profile.mode === 'IOI') return { first: 0.1, second: 0.3, third: 0.5 };
+        if (profile.mode === 'APIO') return { first: 0.1, second: 0.3, third: 0.5 };
+        if (profile.mode === 'CTS' || profile.mode === 'CTT')
+          return { first: 0.12, second: 0.35, third: 0.65 };
         if (profile.mode === 'PROVINCIAL') return { first: 0.15, second: 0.4, third: 0.7 };
         if (profile.mode === 'NOIWC') return { first: 0.16, second: 0.45, third: 0.75 };
         return { first: 0.15, second: 0.45, third: 0.75 };
       };
       const ratios = getAwardRatios();
 
-      const firstLimit = Math.max(1, Math.ceil(groupRows.length * ratios.first));
-      const secondLimit = Math.max(firstLimit + 1, Math.ceil(groupRows.length * ratios.second));
-      const thirdLimit = Math.max(secondLimit + 1, Math.ceil(groupRows.length * ratios.third));
+      let lines = { first: 0, second: 0, third: 0 };
+      if (profile.mode === 'NOI') {
+        const passLine = groupCutoffScores[group] ?? Math.floor(totalPossibleScore * 0.65);
+        lines = {
+          first: passLine,
+          second: Math.floor(passLine * 0.7),
+          third: Math.floor(passLine * 0.5),
+        };
+        groupAwardLines[group] = lines;
+      } else if (profile.mode === 'IOI') {
+        const firstLimit = Math.max(1, Math.floor(groupRows.length * ratios!.first));
+        const secondLimit = Math.max(firstLimit + 1, Math.floor(groupRows.length * ratios!.second));
+        const thirdLimit = Math.max(secondLimit + 1, Math.floor(groupRows.length * ratios!.third));
 
-      const baseLines = getBaseAwardLines(group);
-      const rankFirstScore =
-        groupRows[Math.min(groupRows.length - 1, firstLimit - 1)]?.totalScore ?? 0;
-      const rankSecondScore =
-        groupRows[Math.min(groupRows.length - 1, secondLimit - 1)]?.totalScore ?? 0;
-      const rankThirdScore =
-        groupRows[Math.min(groupRows.length - 1, thirdLimit - 1)]?.totalScore ?? 0;
+        const rankFirstScore =
+          groupRows[Math.min(groupRows.length - 1, firstLimit - 1)]?.totalScore ?? 0;
+        const rankSecondScore =
+          groupRows[Math.min(groupRows.length - 1, secondLimit - 1)]?.totalScore ?? 0;
+        const rankThirdScore =
+          groupRows[Math.min(groupRows.length - 1, thirdLimit - 1)]?.totalScore ?? 0;
 
-      const lines = {
-        first: Math.max(baseLines.second + 4, Math.min(baseLines.first, rankFirstScore)),
-        second: Math.max(baseLines.third + 4, Math.min(baseLines.second, rankSecondScore)),
-        third: Math.max(0, Math.min(baseLines.third, rankThirdScore)),
-      };
-      if (lines.second >= lines.first) lines.second = Math.max(0, lines.first - 3);
-      if (lines.third >= lines.second) lines.third = Math.max(0, lines.second - 3);
-      groupAwardLines[group] = lines;
+        lines = {
+          first: rankFirstScore,
+          second: rankSecondScore,
+          third: rankThirdScore,
+        };
+        groupAwardLines[group] = lines;
+      } else {
+        const firstLimit = Math.max(1, Math.ceil(groupRows.length * ratios!.first));
+        const secondLimit = Math.max(firstLimit + 1, Math.ceil(groupRows.length * ratios!.second));
+        const thirdLimit = Math.max(secondLimit + 1, Math.ceil(groupRows.length * ratios!.third));
 
-      groupRows.forEach((row, index) => {
-        row.award = '未获奖';
-        if (index < firstLimit && row.totalScore >= lines.first) row.award = '一等奖';
-        else if (index < secondLimit && row.totalScore >= lines.second) row.award = '二等奖';
-        else if (index < thirdLimit && row.totalScore >= lines.third) row.award = '三等奖';
+        const baseLines = getBaseAwardLines(group);
+        const rankFirstScore =
+          groupRows[Math.min(groupRows.length - 1, firstLimit - 1)]?.totalScore ?? 0;
+        const rankSecondScore =
+          groupRows[Math.min(groupRows.length - 1, secondLimit - 1)]?.totalScore ?? 0;
+        const rankThirdScore =
+          groupRows[Math.min(groupRows.length - 1, thirdLimit - 1)]?.totalScore ?? 0;
+
+        lines = {
+          first: Math.max(baseLines.second + 4, Math.min(baseLines.first, rankFirstScore)),
+          second: Math.max(baseLines.third + 4, Math.min(baseLines.second, rankSecondScore)),
+          third: Math.max(0, Math.min(baseLines.third, rankThirdScore)),
+        };
+        if (lines.second >= lines.first) lines.second = Math.max(0, lines.first - 3);
+        if (lines.third >= lines.second) lines.third = Math.max(0, lines.second - 3);
+        groupAwardLines[group] = lines;
+      }
+
+      groupRows.forEach((row) => {
+        row.award = '未奖';
+        if (row.totalScore >= lines.first) row.award = '一等奖';
+        else if (row.totalScore >= lines.second) row.award = '二等奖';
+        else if (row.totalScore >= lines.third) row.award = '三等奖';
       });
     });
 
@@ -1876,8 +2061,8 @@ export const useGameLogic = () => {
     );
 
     s.students.forEach((student) => {
-      const joined = sortedResults.some((row) => row.studentId === student.id);
-      if (!joined) return;
+      const row = sortedResults.find((r) => r.studentId === student.id);
+      if (!row) return;
 
       const passed = qualifiedIds.has(student.id);
       student.lastContestStatus = passed ? 'PASSED' : 'FAILED';
@@ -1891,6 +2076,13 @@ export const useGameLogic = () => {
       if (!student.passedContests) student.passedContests = [];
       if (passed && profile.hasAdvancement && !student.passedContests.includes(event.name)) {
         student.passedContests.push(event.name);
+      }
+
+      if (row.award === '一等奖' && row.contestGroup !== 'BEGINNER') {
+        const awardTag = `${profile.mode}_一等奖`;
+        if (!student.passedContests.includes(awardTag)) {
+          student.passedContests.push(awardTag);
+        }
       }
     });
 
@@ -1939,6 +2131,14 @@ export const useGameLogic = () => {
     } else if (profile.mode === 'NOIP' && typeof groupCutoffScores.OPEN === 'number') {
       const openAwards = groupAwardLines.OPEN;
       detailsStr = `NOIP 分数线 ${groupCutoffScores.OPEN}，过线 ${passedCount}/${sortedResults.length}。\n奖线(一/二/三)：${openAwards ? `${openAwards.first}/${openAwards.second}/${openAwards.third}` : '-'}`;
+    } else if (
+      profile.mode === 'NOIWC' ||
+      profile.mode === 'APIO' ||
+      profile.mode === 'IOI' ||
+      profile.mode === 'CTT'
+    ) {
+      const openAwards = groupAwardLines.OPEN;
+      detailsStr = `奖线(一/二/三)：${openAwards ? `${openAwards.first}/${openAwards.second}/${openAwards.third}` : '-'}`;
     } else if (typeof groupCutoffScores.OPEN === 'number') {
       const openAwards = groupAwardLines.OPEN;
       detailsStr = `分数线 ${groupCutoffScores.OPEN}，过线 ${passedCount}/${sortedResults.length}。\n奖线(一/二/三)：${openAwards ? `${openAwards.first}/${openAwards.second}/${openAwards.third}` : '-'}`;
@@ -2018,12 +2218,35 @@ export const useGameLogic = () => {
 
     if (s.year > 3) {
       s.status = 'GAME_OVER';
-      s.gameOverReason = '游戏通关';
-      s.modalContent = {
-        type: 'RESULT',
-        title: '结局：平稳小而美',
-        description: `经过 3 年经营，你的机构仍然在这个城市中存活。最终现金：¥ ${Math.round(s.cash).toLocaleString()} · 学生人数：${s.students.length} · 口碑：${Math.round(s.reputation)}/100`,
-      };
+
+      const allHistory = s.students.flatMap((st) => st.passedContests || []);
+
+      if (allHistory.some((h) => h && h.includes('IOI'))) {
+        s.gameOverReason = '荣耀结局：世界之巅';
+        s.modalContent = {
+          type: 'RESULT',
+          title: '终局：荣耀教练',
+          description: `历经 3 年拼搏，你的队伍杀入 IOI 国际赛场，斩获无上荣誉！你已成为名震江湖的顶尖金牌教练！\n最终资金：¥ ${Math.round(s.cash).toLocaleString()}\n培养学生：${s.students.length} 人\n最终口碑：${Math.round(s.reputation)}/100`,
+        };
+      } else if (
+        allHistory.some(
+          (h) => h && (h.includes('NOI_一等奖') || h.includes('CTT') || h.includes('CTS'))
+        )
+      ) {
+        s.gameOverReason = '金牌结局：名镇一方';
+        s.modalContent = {
+          type: 'RESULT',
+          title: '终局：金牌教练',
+          description: `历经 3 年经营，你的队伍斩获了 NOI 金牌，进入国家集训队。学校声誉大增，你成为了远近闻名的金牌教练！\n最终资金：¥ ${Math.round(s.cash).toLocaleString()}\n培养学生：${s.students.length} 人\n最终口碑：${Math.round(s.reputation)}/100`,
+        };
+      } else {
+        s.gameOverReason = '游戏通关';
+        s.modalContent = {
+          type: 'RESULT',
+          title: '终局：平淡小满',
+          description: `经过 3 年经营，落幕时虽未名震天下，但也算稳扎稳打。\n最终资金：¥ ${Math.round(s.cash).toLocaleString()}\n培养学生：${s.students.length} 人\n最终口碑：${Math.round(s.reputation)}/100`,
+        };
+      }
       return true;
     }
 
@@ -2050,11 +2273,15 @@ export const useGameLogic = () => {
       s.week = 1;
       s.year += 1;
       s.students.forEach((st) => {
-        st.passedContests = [];
+        const keepsNOI = st.passedContests?.includes('NOI');
+        const keepsAPIOQualifiers =
+          st.passedContests?.filter((tag) => tag.endsWith('_一等奖')) || [];
+        st.passedContests = [...keepsAPIOQualifiers];
+        if (keepsNOI) st.passedContests.push('NOI_LAST_YEAR');
         st.lastContestStatus = undefined;
         st.lastContestName = undefined;
       });
-      addLog(s, `新的赛季开始了，机构进入第 ${s.year} 赛季。所有学生的参赛资格已重置。`, 'success');
+      addLog(s, `新的赛季开始了，机构进入第 ${s.year} 赛季。`, 'success');
     }
     s.actedThisWeek = false;
 
@@ -2314,5 +2541,7 @@ export const useGameLogic = () => {
     handleChatEventComplete,
     closeContestResult,
     startContest,
+    toggleRecommendation,
+    getRecommendationQuota,
   };
 };

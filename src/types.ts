@@ -17,6 +17,7 @@ export interface Student {
   lastAdvancementContest?: string;
   lastAdvancementStatus?: 'PASSED' | 'FAILED';
   passedContests?: string[];
+  isRecommended?: boolean;
 }
 
 export interface ContestProblem {
@@ -36,7 +37,8 @@ export interface ContestStudentResult {
   totalScore: number;
   rank: number;
   passed?: boolean;
-  award?: '一等奖' | '二等奖' | '三等奖' | '未获奖';
+  award?: '一等奖' | '二等奖' | '三等奖' | '未奖';
+  isRecommended?: boolean;
 }
 
 export interface ContestResult {
@@ -78,6 +80,7 @@ export interface GameState {
   coachMorale: number;
   bossStress: number;
   studentSatisfaction: number;
+  usedRecommendationQuota?: number;
 
   potentialStudents: number;
   fixedCost: number;

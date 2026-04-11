@@ -33,6 +33,8 @@ const App: React.FC = () => {
     handleChatEventComplete,
     closeContestResult,
     startContest,
+    toggleRecommendation,
+    getRecommendationQuota,
   } = useGameLogic();
 
   const [showRecruitModal, setShowRecruitModal] = useState(false);
@@ -77,6 +79,8 @@ const App: React.FC = () => {
             setGameState={setGameState}
             onRename={renameStudent}
             onDismiss={dismissStudent}
+            onToggleRecommendation={toggleRecommendation}
+            getRecommendationQuota={getRecommendationQuota}
           />
 
           <Dashboard

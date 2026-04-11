@@ -43,7 +43,9 @@ const RecruitModal: React.FC<RecruitModalProps> = ({ gameState, onClose, onRecru
         tier,
         undefined,
         existingNames,
-        gameState.province
+        gameState.province,
+        false,
+        gameState.week
       );
       existingNames.add(student.name);
       newCandidates.push({

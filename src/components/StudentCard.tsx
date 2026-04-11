@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Student } from '../types';
-import { Edit2, DollarSign, Trash2 } from 'lucide-react';
+import { Edit2, DollarSign, Trash2, Award } from 'lucide-react';
 import { calculateTuition } from '../hooks/useGameLogic';
 import { TAGS } from '../constants';
 
@@ -9,6 +9,9 @@ interface StudentCardProps {
   onRename: (newName: string) => void;
   onDismiss?: () => void;
   hideContestStatus?: boolean;
+  onToggleRecommendation?: () => void;
+  canRecommend?: boolean;
+  isRecommended?: boolean;
 }
 
 const StudentCard: React.FC<StudentCardProps> = ({
@@ -16,6 +19,9 @@ const StudentCard: React.FC<StudentCardProps> = ({
   onRename,
   onDismiss,
   hideContestStatus,
+  onToggleRecommendation,
+  canRecommend,
+  isRecommended,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(student.name);
@@ -60,22 +66,66 @@ const StudentCard: React.FC<StudentCardProps> = ({
               <Edit2 size={12} className="text-slate-400 opacity-0 group-hover/name:opacity-50" />
             </h3>
           )}
-          {!hideContestStatus && student.lastAdvancementContest && (
+          {!hideContestStatus && (
             <div className="flex flex-wrap gap-1">
-              <span
-                className={`rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${
-                  student.lastAdvancementStatus === 'PASSED'
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                    : 'border-red-200 bg-red-50 text-red-700'
-                }`}
-                title={`${student.lastAdvancementStatus === 'PASSED' ? '已晋级' : '未晋级'}: ${student.lastAdvancementContest}`}
-              >
-                {student.lastAdvancementStatus === 'PASSED' ? '已晋级' : '未晋级'}{' '}
-                {student.lastAdvancementContest
-                  .replace(' (国家队选拔)', '')
-                  .replace(' 第一轮', '1')
-                  .replace(' 第二轮', '2')}
-              </span>
+              {isRecommended ? (
+                <span
+                  className={`rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700`}
+                  title="已晋级"
+                >
+                  已晋级
+                </span>
+              ) : student.lastAdvancementContest ? (
+                (() => {
+                  const getDisplayContest = (contest: string, status: string) => {
+                    let name = contest;
+                    if (status === 'PASSED') {
+                      const nextMap: Record<string, string> = {
+                        'CSP-J/S 第一轮': 'CSP-J/S 第二轮',
+                        'CSP-J/S 第二轮': 'NOIP',
+                        NOIP: '省选',
+                        NOIWC: '省选',
+                        省队选拔: 'NOI',
+                        NOI: 'CTS',
+                        'CTS (国家队选拔)': 'IOI',
+                        IOI: 'IOI',
+                      };
+                      name = nextMap[contest] || contest;
+                    }
+                    return name
+                      .replace(' (国家队选拔)', '')
+                      .replace(' 第一轮', '1')
+                      .replace(' 第二轮', '2')
+                      .replace('省队选拔', '省选');
+                  };
+                  const displayContest = getDisplayContest(
+                    student.lastAdvancementContest,
+                    student.lastAdvancementStatus || ''
+                  );
+                  return (
+                    <span
+                      className={`rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${
+                        student.lastAdvancementStatus === 'PASSED'
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-red-200 bg-red-50 text-red-700'
+                      }`}
+                      title={`${student.lastAdvancementStatus === 'PASSED' ? '已晋级' : '未晋级'}: ${displayContest}`}
+                    >
+                      {student.lastAdvancementStatus === 'PASSED' ? '已晋级' : '未晋级'}{' '}
+                      {displayContest}
+                    </span>
+                  );
+                })()
+              ) : (
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">
+                  未参加
+                </span>
+              )}
+              {isRecommended && (
+                <span className="rounded-full border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-[9px] font-bold text-orange-600">
+                  推荐名额
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -101,6 +151,22 @@ const StudentCard: React.FC<StudentCardProps> = ({
               </div>
             );
           })}
+          {canRecommend && onToggleRecommendation && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleRecommendation();
+              }}
+              className={`ml-1 flex items-center justify-center rounded p-1 transition-colors ${
+                isRecommended
+                  ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                  : 'text-slate-300 hover:bg-orange-50 hover:text-orange-500'
+              }`}
+              title={isRecommended ? '取消推荐' : '分配推荐名额'}
+            >
+              <Award size={14} />
+            </button>
+          )}
           {onDismiss && (
             <button
               onClick={(e) => {
