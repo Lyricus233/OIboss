@@ -2260,11 +2260,11 @@ export const useGameLogic = () => {
       const abilityScore = student.ability;
 
       if (
-        history.includes('NOIP_一等奖') ||
         history.includes('NOI') ||
         history.includes('NOI_一等奖') ||
         history.includes('CTT') ||
-        history.includes('CTS')
+        history.includes('CTS') ||
+        history.includes('IOI')
       ) {
         newTier = 'ADVANCED';
       } else if (abilityScore >= 80) {
@@ -2273,7 +2273,7 @@ export const useGameLogic = () => {
         if (
           history.includes('CSP2_一等奖') ||
           history.includes('NOIP') ||
-          history.includes('CSP-J/S 第二轮_一等奖')
+          history.includes('NOIP_一等奖')
         ) {
           newTier = 'INTERMEDIATE';
         } else if (abilityScore >= 45) {
