@@ -2363,6 +2363,69 @@ export const useGameLogic = () => {
     });
   };
 
+  const checkStudentResignations = (s: GameState) => {
+    const remainingStudents: Student[] = [];
+    const quitStudents: { student: Student; reason: string }[] = [];
+
+    s.students.forEach((student) => {
+      let quitChance = 0;
+
+      if (student.stress >= 85) {
+        quitChance += (student.stress - 80) * 0.01;
+      }
+      if (student.mood <= 20) {
+        quitChance += (25 - student.mood) * 0.01;
+      }
+
+      if (quitChance > 0) {
+        const tags = student.tags || [];
+        if (tags.includes('玻璃心')) quitChance *= 1.8;
+        if (tags.includes('大心脏')) quitChance *= 0.3;
+        if (tags.includes('卷王')) {
+          if (student.stress > 80) quitChance -= (student.stress - 80) * 0.008;
+        }
+        if (tags.includes('摸鱼') || tags.includes('懒狗')) {
+          if (student.stress >= 70) quitChance *= 1.3;
+        }
+
+        if (student.tier === 'ADVANCED') quitChance *= 0.6;
+        else if (student.tier === 'INTERMEDIATE') quitChance *= 0.8;
+
+        if (Math.random() < quitChance) {
+          let reason = '';
+          if (student.stress >= 85 && student.mood <= 20)
+            reason = '压力极大且心情极度低落，彻底崩溃了';
+          else if (student.stress >= 85) reason = '实在无法承受如此高强度的压力';
+          else reason = '失去了对信奥的兴趣和动力';
+
+          quitStudents.push({ student, reason });
+        } else {
+          remainingStudents.push(student);
+        }
+      } else {
+        remainingStudents.push(student);
+      }
+    });
+
+    if (quitStudents.length > 0) {
+      s.students = remainingStudents;
+      quitStudents.forEach(({ student, reason }) => {
+        addLog(s, `【退队】${student.name} 因为${reason}，选择了退出机构！`, 'danger');
+      });
+
+      const satisfactionPenalty = quitStudents.length * 5;
+      const reputationPenalty = quitStudents.length * 2;
+      s.studentSatisfaction = Math.max(0, s.studentSatisfaction - satisfactionPenalty);
+      s.reputation = Math.max(0, s.reputation - reputationPenalty);
+
+      addNotification(
+        s,
+        `有 ${quitStudents.length} 名学生退队，满意度 -${satisfactionPenalty}，声望 -${reputationPenalty}！`,
+        'error'
+      );
+    }
+  };
+
   const processEndWeekLogic = (s: GameState) => {
     simulateStudentGrowth(s);
     simulateWeekEconomy(s);
@@ -2372,6 +2435,7 @@ export const useGameLogic = () => {
     }
 
     updateStudentTiers(s);
+    checkStudentResignations(s);
 
     if (!s.actedThisWeek) {
       s.bossStress += 2;
@@ -2658,7 +2722,7 @@ export const useGameLogic = () => {
         description: `当前能力: ${student.ability.toFixed(0)}\n当前班级: ${student.tier === 'BEGINNER' ? '普及组' : student.tier === 'INTERMEDIATE' ? '提高组' : '省选组'}\n普及组学生必须升入提高组才能参加 NOIP 及其后续比赛。`,
         options: [
           {
-            label: '名师一对一特训 (¥5000) [能力提升, 阶段越高越困难]',
+            label: '名师一对一特训 (¥5000) [能力提升愈发困难]',
             action: () => {
               let s = { ...gameState };
               if (s.cash < 5000) {
@@ -2718,12 +2782,12 @@ export const useGameLogic = () => {
                       'warning'
                     );
                   } else {
-                    st.ability = Math.max(0, st.ability - 1);
+                    st.ability = Math.max(0, st.ability - 2);
                     st.stress = Math.min(100, st.stress + 25);
                     st.mood = Math.max(0, st.mood - 20);
                     addLog(
                       s,
-                      `花费 ¥5000 特训，${st.name} 强行理解高级算法导致走火入魔，能力下降(-1)！`,
+                      `花费 ¥5000 特训，${st.name} 强行理解高级算法导致走火入魔，能力下降(-2)！`,
                       'danger'
                     );
                   }
