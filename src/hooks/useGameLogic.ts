@@ -117,7 +117,13 @@ export const generateStudent = (
 
   if (isGenius) {
     talent = 95 + Math.floor(Math.random() * 6);
-    ability = 80 + Math.floor(Math.random() * 21);
+    if (tier === 'BEGINNER') {
+      ability = 25 + Math.floor(Math.random() * 10);
+    } else if (tier === 'INTERMEDIATE') {
+      ability = 55 + Math.floor(Math.random() * 10);
+    } else {
+      ability = 85 + Math.floor(Math.random() * 16);
+    }
   } else {
     talent =
       cfg.talentRange.min + Math.floor(Math.random() * (cfg.talentRange.max - cfg.talentRange.min));
@@ -220,11 +226,11 @@ export const generateStudent = (
 };
 
 export const calculateTuition = (student: Student) => {
-  let extraTuition = 300;
-  if (student.tier === 'ADVANCED') extraTuition = 3000;
-  else if (student.tier === 'INTERMEDIATE') extraTuition = 2000;
+  let extraTuition = 200;
+  if (student.tier === 'ADVANCED') extraTuition = 2000;
+  else if (student.tier === 'INTERMEDIATE') extraTuition = 1500;
 
-  let base = Math.floor(student.ability * 60) + extraTuition;
+  let base = Math.floor(student.ability * 40) + extraTuition;
 
   if (student.tags && student.tags.includes('富二代')) {
     const tag = TAGS.find((t) => t.name === '富二代');
@@ -1614,6 +1620,7 @@ export const useGameLogic = () => {
       let growthMultiplier = 1;
       if (tags.includes('卷王')) growthMultiplier *= getEffectValue('卷王', 'train', 1.2);
       if (tags.includes('天才')) growthMultiplier *= getEffectValue('天才', 'ability', 1.5);
+      if (tags.includes('天赋怪')) growthMultiplier *= getEffectValue('天赋怪', 'ability', 2.0); // Make them grow fast
       if (tags.includes('摸鱼')) growthMultiplier *= getEffectValue('摸鱼', 'train', 0.9);
       if (tags.includes('勤奋')) growthMultiplier *= getEffectValue('勤奋', 'ability', 1.1);
       if (tags.includes('迟钝')) growthMultiplier *= getEffectValue('迟钝', 'train', 0.8);
@@ -2713,6 +2720,8 @@ export const useGameLogic = () => {
     const student = gameState.students.find((s) => s.id === studentId);
     if (!student) return;
 
+    const dynamicCost = Math.floor(2000 + student.ability * 50);
+
     setGameState((prev) => ({
       ...prev,
       status: 'MODAL',
@@ -2722,37 +2731,39 @@ export const useGameLogic = () => {
         description: `当前能力: ${student.ability.toFixed(0)}\n当前班级: ${student.tier === 'BEGINNER' ? '普及组' : student.tier === 'INTERMEDIATE' ? '提高组' : '省选组'}\n普及组学生必须升入提高组才能参加 NOIP 及其后续比赛。`,
         options: [
           {
-            label: '名师一对一特训 (¥5000) [能力提升愈发困难]',
+            label: `名师一对一特训 (¥${dynamicCost}) [能力提升愈发困难]`,
             action: () => {
               let s = { ...gameState };
-              if (s.cash < 5000) {
+              if (s.cash < dynamicCost) {
                 addNotification(s, '资金不足！', 'error');
                 s.status = 'PLAYING';
                 s.modalContent = null;
                 setGameState(s);
                 return;
               }
-              s.cash -= 5000;
+              s.cash -= dynamicCost;
               s.history = [...s.history];
               s.students = s.students.map((st) => ({ ...st }));
               const st = s.students.find((x) => x.id === studentId);
               if (st) {
                 const rand = Math.random();
+                const coachBoost = (s.coachLevel - 1) * 0.05;
                 if (st.tier === 'BEGINNER') {
-                  st.ability = Math.min(100, st.ability + 5);
+                  st.ability = Math.min(100, st.ability + 5 + coachBoost * 10);
                   addLog(
                     s,
-                    `花费 ¥5000 为 ${st.name} 安排名师特训，基础扎实，能力显著提升(+5)！`,
+                    `花费 ¥${dynamicCost} 为 ${st.name} 安排名师特训，基础扎实，能力显著提升！`,
                     'success'
                   );
                 } else if (st.tier === 'INTERMEDIATE') {
-                  if (rand < 0.8) {
-                    const gain = 2 + Math.random() * 2;
+                  const successRate = Math.min(0.95, 0.8 + coachBoost);
+                  if (rand < successRate) {
+                    const gain = 2 + Math.random() * 2 + coachBoost * 5;
                     st.ability = Math.min(100, st.ability + gain);
                     st.stress = Math.min(100, st.stress + 5);
                     addLog(
                       s,
-                      `花费 ¥5000 为 ${st.name} 安排名师特训，算法水平稳步提升(+${gain.toFixed(1)})。`,
+                      `花费 ¥${dynamicCost} 为 ${st.name} 安排名师特训，算法水平稳步提升(+${gain.toFixed(1)})。`,
                       'success'
                     );
                   } else {
@@ -2760,25 +2771,27 @@ export const useGameLogic = () => {
                     st.mood = Math.max(0, st.mood - 10);
                     addLog(
                       s,
-                      `花费 ¥5000 特训，但 ${st.name} 遇到思维瓶颈，未能吸收知识且压力增加。`,
+                      `花费 ¥${dynamicCost} 特训，但 ${st.name} 遇到思维瓶颈，未能吸收知识且压力增加。`,
                       'warning'
                     );
                   }
                 } else {
-                  if (rand < 0.5) {
-                    const gain = 1 + Math.random() * 1;
+                  const successRate = Math.min(0.85, 0.5 + coachBoost);
+                  const warningRate = Math.min(0.95, 0.8 + coachBoost);
+                  if (rand < successRate) {
+                    const gain = 1 + Math.random() * 2 + coachBoost * 5;
                     st.ability = Math.min(100, st.ability + gain);
                     st.stress = Math.min(100, st.stress + 5);
                     addLog(
                       s,
-                      `花费 ¥5000 为 ${st.name} 安排省选级特训，突破了部分难题(+${gain.toFixed(1)})！`,
+                      `花费 ¥${dynamicCost} 为 ${st.name} 安排省选级特训，突破了部分难题(+${gain.toFixed(1)})！`,
                       'success'
                     );
-                  } else if (rand < 0.8) {
+                  } else if (rand < warningRate) {
                     st.stress = Math.min(100, st.stress + 15);
                     addLog(
                       s,
-                      `花费 ¥5000 特训，省选知识过于晦涩，${st.name} 毫无头绪，倍感压力。`,
+                      `花费 ¥${dynamicCost} 特训，省选知识过于晦涩，${st.name} 毫无头绪，倍感压力。`,
                       'warning'
                     );
                   } else {
@@ -2787,7 +2800,7 @@ export const useGameLogic = () => {
                     st.mood = Math.max(0, st.mood - 20);
                     addLog(
                       s,
-                      `花费 ¥5000 特训，${st.name} 强行理解高级算法导致走火入魔，能力下降(-2)！`,
+                      `花费 ¥${dynamicCost} 特训，${st.name} 强行理解高级算法导致走火入魔，能力下降(-2)！`,
                       'danger'
                     );
                   }

@@ -97,30 +97,25 @@ const StudentCard: React.FC<StudentCardProps> = ({
                     </span>
                   ) : student.lastAdvancementContest ? (
                     (() => {
-                      const getDisplayContest = (contest: string, status: string) => {
+                      const getDisplayContest = (contest: string) => {
                         let name = contest;
-                        if (status === 'PASSED') {
-                          const nextMap: Record<string, string> = {
-                            'CSP-J/S 第一轮': 'CSP-J/S 第二轮',
-                            'CSP-J/S 第二轮': 'NOIP',
-                            NOIP: '省选',
-                            省队选拔: 'NOI',
-                            NOI: 'CTS',
-                            'CTS (国家队选拔)': 'IOI',
-                            IOI: 'IOI',
-                          };
-                          name = nextMap[contest] || contest;
-                        }
+                        const nextMap: Record<string, string> = {
+                          'CSP-J/S 第一轮': 'CSP-J/S 第二轮',
+                          'CSP-J/S 第二轮': 'NOIP',
+                          NOIP: '省选',
+                          省队选拔: 'NOI',
+                          NOI: 'CTS',
+                          'CTS (国家队选拔)': 'IOI',
+                          IOI: 'IOI',
+                        };
+                        name = nextMap[contest] || contest;
                         return name
                           .replace(' (国家队选拔)', '')
                           .replace(' 第一轮', '1')
                           .replace(' 第二轮', '2')
                           .replace('省队选拔', '省选');
                       };
-                      const displayContest = getDisplayContest(
-                        student.lastAdvancementContest,
-                        student.lastAdvancementStatus || ''
-                      );
+                      const displayContest = getDisplayContest(student.lastAdvancementContest);
                       return (
                         <span
                           className={`truncate rounded-sm border px-1 py-0.5 text-[10px] font-bold ${
