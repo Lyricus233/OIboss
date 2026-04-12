@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ContestResult } from '../types';
 import { Medal, Pause, Play, SkipForward, Trophy, X } from 'lucide-react';
 
@@ -76,6 +76,8 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
     },
   ]);
 
+  const [tickInterval, setTickInterval] = useState(800);
+
   const availableGroups = useMemo(() => {
     const set = new Set<GroupKey>();
     result.participants.forEach((p) => set.add(p.contestGroup));
@@ -108,9 +110,29 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
     if (!isRunning || phase !== 'LIVE') return;
     const timer = window.setTimeout(() => {
       setTick((prev) => prev + 1);
-    }, 600);
+    }, tickInterval);
     return () => window.clearTimeout(timer);
-  }, [isRunning, phase, tick]);
+  }, [isRunning, phase, tick, tickInterval]);
+
+  useEffect(() => {
+    if (phase !== 'LIVE') return;
+    const allFinished = liveStudents.every((s) => s.totalScore >= s.finalTotal);
+    if (tick >= maxTicks + 2 || (allFinished && tick >= maxTicks)) {
+      setPhase('FINAL');
+      setIsRunning(false);
+      setLogs((prev) =>
+        [
+          ...prev,
+          {
+            id: `finish-${tick}`,
+            tick,
+            message: '滚榜结束，最终排名已锁定。',
+            type: 'info' as const,
+          },
+        ].slice(-220)
+      );
+    }
+  }, [tick, maxTicks, phase, liveStudents]);
 
   useEffect(() => {
     if (phase !== 'LIVE') return;
@@ -122,22 +144,31 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
       let updated = prev.map((s) => ({ ...s, currentScores: [...s.currentScores] }));
 
       updated.forEach((student, idx) => {
-        const pendingProblemIndex = student.currentScores.findIndex(
-          (v, problemIndex) => v < student.finalScores[problemIndex]
-        );
-        if (pendingProblemIndex < 0) return;
+        const pendingIndices = student.currentScores
+          .map((v, problemIndex) => (v < student.finalScores[problemIndex] ? problemIndex : -1))
+          .filter((i) => i >= 0);
 
+        if (pendingIndices.length === 0) return;
+
+        const pendingProblemIndex =
+          pendingIndices[Math.floor(Math.random() * pendingIndices.length)];
+
+        const ticksLeft = maxTicks - tick;
         const progressChance = 0.45 + (student.rank <= 3 ? 0.12 : 0) + Math.random() * 0.2;
-        if (Math.random() > progressChance) return;
+        if (Math.random() > progressChance && ticksLeft > pendingIndices.length * 1.5) return;
 
         const left =
           student.finalScores[pendingProblemIndex] - student.currentScores[pendingProblemIndex];
-        const ticksLeft = Math.max(1, maxTicks - tick + 1);
-        const minInc = Math.max(1, Math.floor(left / (ticksLeft + 1)));
-        const maxInc = Math.max(minInc, Math.ceil(left / Math.max(1, ticksLeft / 2)));
-        const inc = Math.min(left, minInc + Math.floor(Math.random() * (maxInc - minInc + 1)));
 
-        student.currentScores[pendingProblemIndex] += inc;
+        if (ticksLeft <= 0) {
+          student.currentScores[pendingProblemIndex] += left;
+        } else {
+          const minInc = Math.max(1, Math.floor(left / (ticksLeft + 1)));
+          const maxInc = Math.max(minInc, Math.ceil(left / Math.max(1, ticksLeft / 2)));
+          const inc = Math.min(left, minInc + Math.floor(Math.random() * (maxInc - minInc + 1)));
+          student.currentScores[pendingProblemIndex] += inc;
+        }
+
         student.totalScore = student.currentScores.reduce((sum, v) => sum + v, 0);
 
         const problemLabel =
@@ -165,17 +196,6 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
       }
 
       const ranked = recalculateRank(updated);
-      const allFinished = ranked.every((s) => s.totalScore >= s.finalTotal);
-      if (allFinished || tick >= maxTicks) {
-        setPhase('FINAL');
-        setIsRunning(false);
-        emittedLogs.push({
-          id: `finish-${tick}`,
-          tick,
-          message: '滚榜结束，最终排名已锁定。',
-          type: 'info',
-        });
-      }
       return ranked;
     });
 
@@ -291,6 +311,45 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
     return typeof result.cutoffScore === 'number' ? `分数线 ${result.cutoffScore}` : '';
   }, [result.cutoffScore, result.groupCutoffScores]);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const prevPositions = useRef<Map<string, number>>(new Map());
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const children = Array.from(container.children) as HTMLElement[];
+
+    const newPositions = new Map<string, number>();
+    children.forEach((child) => {
+      if (child.dataset.id) newPositions.set(child.dataset.id, child.offsetTop);
+    });
+
+    children.forEach((child) => {
+      const id = child.dataset.id;
+      if (!id) return;
+      const oldTop = prevPositions.current.get(id);
+      const newTop = newPositions.get(id);
+      if (oldTop !== undefined && newTop !== undefined && oldTop !== newTop) {
+        const deltaY = oldTop - newTop;
+        child.style.transform = `translateY(${deltaY}px)`;
+        child.style.transition = 'none';
+        child.style.zIndex = '10';
+
+        void child.offsetHeight;
+
+        const animDuration = Math.min(400, tickInterval * 0.8);
+        child.style.transform = 'translateY(0)';
+        child.style.transition = `transform ${animDuration}ms cubic-bezier(0.25, 1, 0.5, 1)`;
+
+        setTimeout(() => {
+          child.style.zIndex = '';
+        }, animDuration);
+      }
+    });
+
+    prevPositions.current = newPositions;
+  }, [visibleStudents, tickInterval]);
+
   return (
     <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="pointer-events-auto w-full max-w-6xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
@@ -347,25 +406,43 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
                 <>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-linear-to-r from-indigo-500 to-blue-500 transition-all duration-500"
-                      style={{ width: `${Math.min(100, (tick / Math.max(1, maxTicks)) * 100)}%` }}
+                      className="h-full rounded-full bg-linear-to-r from-indigo-500 to-blue-500 transition-all"
+                      style={{
+                        width: `${Math.min(100, (tick / Math.max(1, maxTicks)) * 100)}%`,
+                        transitionDuration: `${tickInterval}ms`,
+                      }}
                     />
                   </div>
-                  <div className="mt-2 flex gap-2">
-                    <button
-                      onClick={() => setIsRunning((v) => !v)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
-                    >
-                      {isRunning ? <Pause size={14} /> : <Play size={14} />}
-                      {isRunning ? '暂停' : '继续'}
-                    </button>
-                    <button
-                      onClick={jumpToFinal}
-                      className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
-                    >
-                      <SkipForward size={14} />
-                      跳过并查看最终排名
-                    </button>
+                  <div className="mt-2 flex items-center justify-between gap-4">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setIsRunning((v) => !v)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                      >
+                        {isRunning ? <Pause size={14} /> : <Play size={14} />}
+                        {isRunning ? '暂停' : '继续'}
+                      </button>
+                      <button
+                        onClick={jumpToFinal}
+                        className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+                      >
+                        <SkipForward size={14} />
+                        跳过并查看最终排名
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <span>慢</span>
+                      <input
+                        type="range"
+                        min="200"
+                        max="1500"
+                        step="100"
+                        value={1700 - tickInterval}
+                        onChange={(e) => setTickInterval(1700 - Number(e.target.value))}
+                        className="h-1.5 w-24 cursor-pointer appearance-none rounded-lg bg-slate-200"
+                      />
+                      <span>快</span>
+                    </div>
                   </div>
                 </>
               ) : (
@@ -384,10 +461,11 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
 
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {phase === 'LIVE' ? (
-                <div className="space-y-2">
+                <div className="space-y-2" ref={containerRef}>
                   {visibleStudents.map((student) => (
                     <div
                       key={student.studentId}
+                      data-id={student.studentId}
                       className="rounded-xl border border-slate-200 bg-white p-3"
                     >
                       <div className="flex items-center justify-between">
@@ -439,21 +517,43 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
                                 小计: {subtotal}
                               </span>
                             </div>
-                            <div className="grid grid-cols-4 gap-1">
-                              {scores.map(({ score, idx }) => (
-                                <div
-                                  key={`${student.studentId}-${idx}`}
-                                  className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-center"
-                                >
-                                  <div className="text-[10px] text-slate-400">
-                                    {result.problems[idx]?.label || `T${idx + 1}`}
+                            <div className="grid grid-cols-4 gap-2">
+                              {scores.map(({ score, idx }) => {
+                                const finalScore = student.finalScores[idx];
+                                const isFinished = student.currentScores[idx] === finalScore;
+                                const isCurrent =
+                                  student.currentScores.findIndex(
+                                    (v, i) => v < student.finalScores[i]
+                                  ) === idx;
+
+                                return (
+                                  <div
+                                    key={`${student.studentId}-${idx}`}
+                                    className={`relative overflow-hidden rounded-md border ${isCurrent ? 'border-indigo-300 shadow-sm' : 'border-slate-200'} bg-slate-50 px-2 py-1.5 text-center transition-all`}
+                                  >
+                                    <div
+                                      className={`absolute top-0 bottom-0 left-0 transition-all ${isFinished ? (score === 100 ? 'bg-emerald-100' : score > 0 ? 'bg-indigo-100' : 'bg-slate-100') : 'bg-blue-100'}`}
+                                      style={{
+                                        width: `${Math.min(100, score)}%`,
+                                        transitionDuration: `${tickInterval}ms`,
+                                      }}
+                                    />
+                                    <div className="relative z-10 flex flex-col items-center justify-center">
+                                      <div
+                                        className={`text-[10px] ${isCurrent ? 'font-bold text-indigo-600' : 'text-slate-500'}`}
+                                      >
+                                        {result.problems[idx]?.label || `T${idx + 1}`}
+                                      </div>
+                                      <div
+                                        className={`font-mono text-xs font-bold ${isCurrent ? 'text-indigo-700' : 'text-slate-700'}`}
+                                      >
+                                        {score}
+                                        <span className="font-normal opacity-60">/100</span>
+                                      </div>
+                                    </div>
                                   </div>
-                                  <div className="font-mono text-xs font-bold text-slate-700">
-                                    {score}
-                                    <span className="text-slate-400">/100</span>
-                                  </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
                         ))}
