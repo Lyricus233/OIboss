@@ -28,6 +28,26 @@ export interface ContestProblem {
   stageName?: string;
 }
 
+export type ContestMode =
+  | 'CSP1'
+  | 'CSP2'
+  | 'NOIP'
+  | 'PROVINCIAL'
+  | 'NOIWC'
+  | 'APIO'
+  | 'NOI'
+  | 'CTT'
+  | 'CTS'
+  | 'IOI'
+  | 'GENERAL';
+
+export interface ContestProfile {
+  mode: ContestMode;
+  hasAdvancement: boolean;
+  isHighLevel?: boolean;
+  cutoffScore?: number;
+}
+
 export interface ContestStudentResult {
   studentId: string;
   studentName: string;
@@ -37,7 +57,7 @@ export interface ContestStudentResult {
   totalScore: number;
   rank: number;
   passed?: boolean;
-  award?: '一等奖' | '二等奖' | '三等奖' | '未奖';
+  award?: '金牌' | '银牌' | '铜牌' | '一等奖' | '二等奖' | '三等奖' | '未获奖' | '未奖';
   isRecommended?: boolean;
 }
 
@@ -64,6 +84,7 @@ export interface ContestResult {
   logType?: 'success' | 'danger' | 'warning' | 'info';
   medalsWon?: number;
   hasAdvancement?: boolean;
+  isHighLevel?: boolean;
 }
 
 export interface GameState {

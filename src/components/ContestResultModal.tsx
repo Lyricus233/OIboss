@@ -215,9 +215,12 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
       const average = rows.reduce((sum, r) => sum + r.totalScore, 0) / total;
       const top = rows.slice(0, 3);
       const bottom = [...rows].reverse().slice(0, 3);
-      const firstRate = (rows.filter((r) => r.award === '一等奖').length / total) * 100;
-      const secondRate = (rows.filter((r) => r.award === '二等奖').length / total) * 100;
-      const thirdRate = (rows.filter((r) => r.award === '三等奖').length / total) * 100;
+      const firstRate =
+        (rows.filter((r) => r.award === '一等奖' || r.award === '金牌').length / total) * 100;
+      const secondRate =
+        (rows.filter((r) => r.award === '二等奖' || r.award === '银牌').length / total) * 100;
+      const thirdRate =
+        (rows.filter((r) => r.award === '三等奖' || r.award === '铜牌').length / total) * 100;
       const passRate = (rows.filter((r) => r.passed).length / total) * 100;
       const standoutByTotal = rows[0];
       const standoutBySingle = [...rows].sort(
@@ -480,7 +483,9 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
                             <th className="px-2 py-2 text-center">总分</th>
                             <th className="px-2 py-2 text-center">奖项</th>
                             {result.hasAdvancement && (
-                              <th className="px-2 py-2 text-center">是否过线</th>
+                              <th className="px-2 py-2 text-center">
+                                {result.isHighLevel ? '晋级情况' : '是否过线'}
+                              </th>
                             )}
                           </tr>
                         </thead>
@@ -507,15 +512,27 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
                               </td>
                               {result.hasAdvancement && (
                                 <td className="px-2 py-1.5 text-center">
-                                  <span
-                                    className={`rounded-full px-2 py-0.5 ${
-                                      row.passed
-                                        ? 'bg-emerald-50 text-emerald-700'
-                                        : 'bg-rose-50 text-rose-700'
-                                    }`}
-                                  >
-                                    {row.passed ? '过线' : '未过线'}
-                                  </span>
+                                  {result.isHighLevel ? (
+                                    <span
+                                      className={`rounded-full px-2 py-0.5 ${
+                                        row.passed
+                                          ? 'bg-amber-50 font-bold text-amber-700'
+                                          : 'text-slate-400'
+                                      }`}
+                                    >
+                                      {row.passed ? '直通' : '-'}
+                                    </span>
+                                  ) : (
+                                    <span
+                                      className={`rounded-full px-2 py-0.5 ${
+                                        row.passed
+                                          ? 'bg-emerald-50 text-emerald-700'
+                                          : 'bg-rose-50 text-rose-700'
+                                      }`}
+                                    >
+                                      {row.passed ? '过线' : '未过线'}
+                                    </span>
+                                  )}
                                 </td>
                               )}
                             </tr>
@@ -539,7 +556,7 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
                         </div>
                       </div>
                       <div className="mb-2 rounded-lg border border-amber-100 bg-amber-50 px-2 py-1.5 text-xs text-amber-700">
-                        奖项分数线(一/二/三)：
+                        {result.isHighLevel ? '奖项分数线(金/银/铜)：' : '奖项分数线(一/二/三)：'}
                         {result.groupAwardLines?.[groupItem.group]
                           ? `${result.groupAwardLines[groupItem.group]!.first}/${result.groupAwardLines[groupItem.group]!.second}/${result.groupAwardLines[groupItem.group]!.third}`
                           : '-'}
@@ -547,26 +564,26 @@ const ContestResultModal: React.FC<ContestResultModalProps> = ({ result, onClose
 
                       <div className="mb-2 grid grid-cols-2 gap-2 md:grid-cols-4">
                         <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1.5 text-xs text-slate-600">
-                          一等率{' '}
+                          {result.isHighLevel ? '金牌率' : '一等率'}{' '}
                           <span className="font-bold text-amber-600">
                             {groupItem.firstRate.toFixed(1)}%
                           </span>
                         </div>
                         <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1.5 text-xs text-slate-600">
-                          二等率{' '}
+                          {result.isHighLevel ? '银牌率' : '二等率'}{' '}
                           <span className="font-bold text-indigo-600">
                             {groupItem.secondRate.toFixed(1)}%
                           </span>
                         </div>
                         <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1.5 text-xs text-slate-600">
-                          三等奖{' '}
+                          {result.isHighLevel ? '铜牌率' : '三等奖'}{' '}
                           <span className="font-bold text-emerald-600">
                             {groupItem.thirdRate.toFixed(1)}%
                           </span>
                         </div>
                         {result.hasAdvancement && (
                           <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1.5 text-xs text-slate-600">
-                            过线率{' '}
+                            {result.isHighLevel ? '直通率' : '过线率'}{' '}
                             <span className="font-bold text-rose-600">
                               {groupItem.passRate.toFixed(1)}%
                             </span>

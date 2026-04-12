@@ -258,6 +258,7 @@ interface ContestProfile {
   mode: ContestMode;
   problems: ContestProblem[];
   hasAdvancement: boolean;
+  isHighLevel?: boolean;
   cutoffScore?: number;
   groupCutoffRanges?: Partial<
     Record<'BEGINNER' | 'INTERMEDIATE' | 'OPEN', { min: number; max: number }>
@@ -274,7 +275,8 @@ export const getEligibleStudents = (s: GameState, profile: ContestProfile) => {
     eligibleStudents = s.students.filter((student) => {
       const history = student.passedContests || [];
       if (profile.mode === 'CSP1') return !student.isRecommended;
-      if (profile.mode === 'NOIP') return history.includes('CSP-J/S 第二轮');
+      if (profile.mode === 'NOIP')
+        return history.includes('CSP-J/S 第二轮') && student.tier !== 'BEGINNER';
       if (profile.mode === 'NOIWC') return history.includes('CSP-J/S 第二轮');
       if (profile.mode === 'PROVINCIAL') return history.includes('NOIP');
       if (profile.mode === 'APIO')
@@ -430,6 +432,7 @@ export const buildContestProfile = (event: CalendarEvent): ContestProfile => {
     return {
       mode,
       hasAdvancement: true,
+      isHighLevel: true,
       problems:
         problems.length > 0
           ? problems
@@ -446,6 +449,7 @@ export const buildContestProfile = (event: CalendarEvent): ContestProfile => {
     return {
       mode,
       hasAdvancement: true,
+      isHighLevel: true,
       problems:
         problems.length > 0
           ? problems
@@ -462,6 +466,7 @@ export const buildContestProfile = (event: CalendarEvent): ContestProfile => {
     return {
       mode,
       hasAdvancement: false,
+      isHighLevel: true,
       problems:
         problems.length > 0
           ? problems
@@ -478,6 +483,7 @@ export const buildContestProfile = (event: CalendarEvent): ContestProfile => {
     return {
       mode,
       hasAdvancement: true,
+      isHighLevel: true,
       problems:
         problems.length > 0
           ? problems
@@ -1937,28 +1943,6 @@ export const useGameLogic = () => {
       }
     });
 
-    if (profile.mode === 'NOI') {
-      sortedResults.forEach((item) => {
-        item.passed = item.award === '一等奖';
-      });
-    }
-
-    if (profile.mode === 'CTS') {
-      const openGroup = sortedResults
-        .filter((r) => r.contestGroup === 'OPEN')
-        .sort((a, b) => b.totalScore - a.totalScore);
-      const passLineScore =
-        openGroup.length >= 4
-          ? openGroup[3].totalScore
-          : openGroup[openGroup.length - 1]?.totalScore || 0;
-      sortedResults.forEach((item) => {
-        item.passed =
-          item.totalScore >= passLineScore && item.totalScore >= totalPossibleScore * 0.5;
-      });
-    }
-
-    const passedCount = sortedResults.filter((item) => item.passed).length;
-
     const groupAwardLines: Partial<
       Record<'BEGINNER' | 'INTERMEDIATE' | 'OPEN', { first: number; second: number; third: number }>
     > = {};
@@ -2063,12 +2047,35 @@ export const useGameLogic = () => {
       }
 
       groupRows.forEach((row) => {
-        row.award = '未奖';
-        if (row.totalScore >= lines.first) row.award = '一等奖';
-        else if (row.totalScore >= lines.second) row.award = '二等奖';
-        else if (row.totalScore >= lines.third) row.award = '三等奖';
+        row.award = '未获奖';
+        if (row.totalScore >= lines.first) row.award = profile.isHighLevel ? '金牌' : '一等奖';
+        else if (row.totalScore >= lines.second)
+          row.award = profile.isHighLevel ? '银牌' : '二等奖';
+        else if (row.totalScore >= lines.third) row.award = profile.isHighLevel ? '铜牌' : '三等奖';
       });
     });
+
+    if (profile.mode === 'NOI') {
+      sortedResults.forEach((item) => {
+        item.passed = item.award === '一等奖' || item.award === '金牌';
+      });
+    }
+
+    if (profile.mode === 'CTS') {
+      const openGroup = sortedResults
+        .filter((r) => r.contestGroup === 'OPEN')
+        .sort((a, b) => b.totalScore - a.totalScore);
+      const passLineScore =
+        openGroup.length >= 4
+          ? openGroup[3].totalScore
+          : openGroup[openGroup.length - 1]?.totalScore || 0;
+      sortedResults.forEach((item) => {
+        item.passed =
+          item.totalScore >= passLineScore && item.totalScore >= totalPossibleScore * 0.5;
+      });
+    }
+
+    const passedCount = sortedResults.filter((item) => item.passed).length;
 
     const qualifiedIds = new Set(
       sortedResults.filter((item) => item.passed).map((item) => item.studentId)
@@ -2092,7 +2099,7 @@ export const useGameLogic = () => {
         student.passedContests.push(event.name);
       }
 
-      if (row.award === '一等奖' && row.contestGroup !== 'BEGINNER') {
+      if ((row.award === '一等奖' || row.award === '金牌') && row.contestGroup !== 'BEGINNER') {
         const awardTag = `${profile.mode}_一等奖`;
         if (!student.passedContests.includes(awardTag)) {
           student.passedContests.push(awardTag);
@@ -2179,6 +2186,7 @@ export const useGameLogic = () => {
       logType,
       medalsWon,
       hasAdvancement: profile.hasAdvancement,
+      isHighLevel: profile.isHighLevel,
     };
     return true;
   };
@@ -2634,6 +2642,93 @@ export const useGameLogic = () => {
     setGameState(s);
   };
 
+  const upgradeStudent = (studentId: string) => {
+    const student = gameState.students.find((s) => s.id === studentId);
+    if (!student) return;
+
+    setGameState((prev) => ({
+      ...prev,
+      status: 'MODAL',
+      modalContent: {
+        type: 'CONFIRM',
+        title: `为 ${student.name} 安排特训/升班`,
+        description: `当前能力: ${student.ability.toFixed(0)}\n当前班级: ${student.tier === 'BEGINNER' ? '普及组' : student.tier === 'INTERMEDIATE' ? '提高组' : '省选组'}\n普及组学生必须升入提高组才能参加 NOIP 及其后续比赛。`,
+        options: [
+          {
+            label: '名师一对一特训 (¥3000) [+5能力]',
+            action: () => {
+              setGameState((current) => {
+                let s = { ...current };
+                if (s.cash < 3000) {
+                  addNotification(s, '资金不足！', 'error');
+                  s.status = 'PLAYING';
+                  s.modalContent = null;
+                  return s;
+                }
+                s.cash -= 3000;
+                const st = s.students.find((x) => x.id === studentId);
+                if (st) {
+                  st.ability = Math.min(100, st.ability + 5);
+                  addLog(
+                    s,
+                    `花费 ¥3000 为 ${st.name} 安排了名师一对一特训，能力显著提升！`,
+                    'success'
+                  );
+                }
+                s.status = 'PLAYING';
+                s.modalContent = null;
+                updateStudentTiers(s);
+                return s;
+              });
+            },
+          },
+          ...(student.tier !== 'ADVANCED'
+            ? [
+                {
+                  label: `强制破格升班 (¥${student.tier === 'BEGINNER' ? 5000 : 10000})`,
+                  action: () => {
+                    setGameState((current) => {
+                      let s = { ...current };
+                      const cost = student.tier === 'BEGINNER' ? 5000 : 10000;
+                      if (s.cash < cost) {
+                        addNotification(s, '资金不足！', 'error');
+                        s.status = 'PLAYING';
+                        s.modalContent = null;
+                        return s;
+                      }
+                      s.cash -= cost;
+                      const st = s.students.find((x) => x.id === studentId);
+                      if (st) {
+                        const oldTier = st.tier;
+                        st.tier = st.tier === 'BEGINNER' ? 'INTERMEDIATE' : 'ADVANCED';
+                        addLog(
+                          s,
+                          `花费 ¥${cost} 直接将 ${st.name} 从 ${oldTier === 'BEGINNER' ? '普及组' : '提高组'} 破格提升至 ${st.tier === 'INTERMEDIATE' ? '提高组' : '省选组'}！`,
+                          'success'
+                        );
+                      }
+                      s.status = 'PLAYING';
+                      s.modalContent = null;
+                      return s;
+                    });
+                  },
+                },
+              ]
+            : []),
+          {
+            label: '取消',
+            action: () =>
+              setGameState((p) => ({
+                ...p,
+                status: 'PLAYING',
+                modalContent: null,
+              })),
+          },
+        ],
+      },
+    }));
+  };
+
   return {
     gameState,
     setGameState,
@@ -2648,6 +2743,7 @@ export const useGameLogic = () => {
     upgradeFacility,
     dismissStudent,
     renameStudent,
+    upgradeStudent,
     removeNotification,
     handleChatEventComplete,
     closeContestResult,

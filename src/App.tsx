@@ -31,6 +31,7 @@ const App: React.FC = () => {
     upgradeFacility,
     dismissStudent,
     renameStudent,
+    upgradeStudent,
     removeNotification,
     handleChatEventComplete,
     closeContestResult,
@@ -88,6 +89,7 @@ const App: React.FC = () => {
             setGameState={setGameState}
             onRename={renameStudent}
             onDismiss={dismissStudent}
+            onUpgrade={upgradeStudent}
             onToggleRecommendation={toggleRecommendation}
             getRecommendationQuota={getRecommendationQuota}
           />

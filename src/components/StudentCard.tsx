@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Student } from '../types';
-import { Edit2, DollarSign, Trash2, Award } from 'lucide-react';
+import { Edit2, DollarSign, Trash2, Award, Zap } from 'lucide-react';
 import { calculateTuition } from '../hooks/useGameLogic';
 import { TAGS } from '../constants';
 
@@ -8,6 +8,7 @@ interface StudentCardProps {
   student: Student;
   onRename: (newName: string) => void;
   onDismiss?: () => void;
+  onUpgrade?: () => void;
   hideContestStatus?: boolean;
   onToggleRecommendation?: () => void;
   canRecommend?: boolean;
@@ -26,6 +27,7 @@ const StudentCard: React.FC<StudentCardProps> = ({
   student,
   onRename,
   onDismiss,
+  onUpgrade,
   hideContestStatus,
   onToggleRecommendation,
   canRecommend,
@@ -178,6 +180,18 @@ const StudentCard: React.FC<StudentCardProps> = ({
                   title={isRecommended ? '取消推荐' : '给予推荐名额'}
                 >
                   <Award size={16} />
+                </button>
+              )}
+              {onUpgrade && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUpgrade();
+                  }}
+                  className="rounded p-1 text-slate-300 transition-colors hover:bg-amber-50 hover:text-amber-500"
+                  title="特训/升班"
+                >
+                  <Zap size={16} />
                 </button>
               )}
               {onDismiss && (

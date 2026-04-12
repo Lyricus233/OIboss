@@ -8,6 +8,7 @@ interface SidebarProps {
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
   onRename: (id: string, newName: string) => void;
   onDismiss: (id: string) => void;
+  onUpgrade: (id: string) => void;
   onToggleRecommendation: (id: string) => void;
   getRecommendationQuota: (state: GameState) => number;
 }
@@ -16,6 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   gameState,
   onRename,
   onDismiss,
+  onUpgrade,
   onToggleRecommendation,
   getRecommendationQuota,
 }) => {
@@ -62,6 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 student={student}
                 onRename={(newName) => onRename(student.id, newName)}
                 onDismiss={() => onDismiss(student.id)}
+                onUpgrade={() => onUpgrade(student.id)}
                 hideContestStatus={!!gameState.currentContestResult}
                 onToggleRecommendation={() => onToggleRecommendation(student.id)}
                 canRecommend={
