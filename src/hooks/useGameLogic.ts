@@ -2583,22 +2583,24 @@ export const useGameLogic = () => {
             label: '确定劝退',
             isDanger: true,
             action: () => {
-              setGameState((current) => {
-                let s = { ...current };
-                if (!s.students.find((st) => st.id === studentId)) {
-                  return { ...s, status: 'PLAYING', modalContent: null };
-                }
-
-                s.students = s.students.filter((st) => st.id !== studentId);
-                s.studentSatisfaction = Math.max(0, s.studentSatisfaction - 10);
-                s.bossStress = Math.max(0, s.bossStress - 10);
-
-                addLog(s, `你劝退了 ${student.name}。满意度 -10，压力 -5。`, 'warning');
+              let s = { ...gameState };
+              if (!s.students.find((st) => st.id === studentId)) {
                 s.status = 'PLAYING';
                 s.modalContent = null;
-                checkGameOver(s);
-                return s;
-              });
+                setGameState(s);
+                return;
+              }
+
+              s.history = [...s.history];
+              s.students = s.students.filter((st) => st.id !== studentId);
+              s.studentSatisfaction = Math.max(0, s.studentSatisfaction - 10);
+              s.bossStress = Math.max(0, s.bossStress - 10);
+
+              addLog(s, `你劝退了 ${student.name}。满意度 -10，压力 -5。`, 'warning');
+              s.status = 'PLAYING';
+              s.modalContent = null;
+              checkGameOver(s);
+              setGameState(s);
             },
           },
           {
@@ -2657,29 +2659,30 @@ export const useGameLogic = () => {
           {
             label: '名师一对一特训 (¥3000) [+5能力]',
             action: () => {
-              setGameState((current) => {
-                let s = { ...current };
-                if (s.cash < 3000) {
-                  addNotification(s, '资金不足！', 'error');
-                  s.status = 'PLAYING';
-                  s.modalContent = null;
-                  return s;
-                }
-                s.cash -= 3000;
-                const st = s.students.find((x) => x.id === studentId);
-                if (st) {
-                  st.ability = Math.min(100, st.ability + 5);
-                  addLog(
-                    s,
-                    `花费 ¥3000 为 ${st.name} 安排了名师一对一特训，能力显著提升！`,
-                    'success'
-                  );
-                }
+              let s = { ...gameState };
+              if (s.cash < 3000) {
+                addNotification(s, '资金不足！', 'error');
                 s.status = 'PLAYING';
                 s.modalContent = null;
-                updateStudentTiers(s);
-                return s;
-              });
+                setGameState(s);
+                return;
+              }
+              s.cash -= 3000;
+              s.history = [...s.history];
+              s.students = s.students.map((st) => ({ ...st }));
+              const st = s.students.find((x) => x.id === studentId);
+              if (st) {
+                st.ability = Math.min(100, st.ability + 5);
+                addLog(
+                  s,
+                  `花费 ¥3000 为 ${st.name} 安排了名师一对一特训，能力显著提升！`,
+                  'success'
+                );
+              }
+              s.status = 'PLAYING';
+              s.modalContent = null;
+              updateStudentTiers(s);
+              setGameState(s);
             },
           },
           ...(student.tier !== 'ADVANCED'
@@ -2687,30 +2690,31 @@ export const useGameLogic = () => {
                 {
                   label: `强制破格升班 (¥${student.tier === 'BEGINNER' ? 5000 : 10000})`,
                   action: () => {
-                    setGameState((current) => {
-                      let s = { ...current };
-                      const cost = student.tier === 'BEGINNER' ? 5000 : 10000;
-                      if (s.cash < cost) {
-                        addNotification(s, '资金不足！', 'error');
-                        s.status = 'PLAYING';
-                        s.modalContent = null;
-                        return s;
-                      }
-                      s.cash -= cost;
-                      const st = s.students.find((x) => x.id === studentId);
-                      if (st) {
-                        const oldTier = st.tier;
-                        st.tier = st.tier === 'BEGINNER' ? 'INTERMEDIATE' : 'ADVANCED';
-                        addLog(
-                          s,
-                          `花费 ¥${cost} 直接将 ${st.name} 从 ${oldTier === 'BEGINNER' ? '普及组' : '提高组'} 破格提升至 ${st.tier === 'INTERMEDIATE' ? '提高组' : '省选组'}！`,
-                          'success'
-                        );
-                      }
+                    let s = { ...gameState };
+                    const cost = student.tier === 'BEGINNER' ? 5000 : 10000;
+                    if (s.cash < cost) {
+                      addNotification(s, '资金不足！', 'error');
                       s.status = 'PLAYING';
                       s.modalContent = null;
-                      return s;
-                    });
+                      setGameState(s);
+                      return;
+                    }
+                    s.cash -= cost;
+                    s.history = [...s.history];
+                    s.students = s.students.map((st) => ({ ...st }));
+                    const st = s.students.find((x) => x.id === studentId);
+                    if (st) {
+                      const oldTier = st.tier;
+                      st.tier = st.tier === 'BEGINNER' ? 'INTERMEDIATE' : 'ADVANCED';
+                      addLog(
+                        s,
+                        `花费 ¥${cost} 直接将 ${st.name} 从 ${oldTier === 'BEGINNER' ? '普及组' : '提高组'} 破格提升至 ${st.tier === 'INTERMEDIATE' ? '提高组' : '省选组'}！`,
+                        'success'
+                      );
+                    }
+                    s.status = 'PLAYING';
+                    s.modalContent = null;
+                    setGameState(s);
                   },
                 },
               ]
