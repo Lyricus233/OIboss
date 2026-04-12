@@ -868,6 +868,111 @@ export const AGENCY_ACTIONS = [
 
 export const RANDOM_EVENTS = [
   {
+    id: 'op',
+    title: '原神启动！',
+    text: '你在机房发现有几个学生在偷偷玩原神、看 P 站。',
+    minWeek: 10,
+    options: [
+      {
+        id: 'ignore',
+        label: '睁一只眼闭一只眼（佛系）',
+        outcomes: [
+          {
+            weight: 100,
+            description: '学生们玩得很开心，但成绩一落千丈。',
+            effects: { studentAbility: -5, studentSatisfaction: +5, bossStress: -2 },
+            type: 'warning',
+          },
+        ],
+      },
+      {
+        id: 'scold',
+        label: '严厉批评',
+        outcomes: [
+          {
+            weight: 70,
+            description: '你把他们痛骂了一顿，他们老实了几天。',
+            effects: { bossStress: +5, studentSatisfaction: -5 },
+            type: 'success',
+          },
+          {
+            weight: 30,
+            description: '有些学生不服气，直接退课了。',
+            effects: { students: -3, reputation: -2, bossStress: +10 },
+            type: 'danger',
+          },
+        ],
+      },
+      {
+        id: 'join',
+        label: '跟他们一起玩',
+        outcomes: [
+          {
+            weight: 100,
+            description: '你也拿起了手机，机房变成了网吧。',
+            effects: {
+              coachMorale: +10,
+              studentSatisfaction: +15,
+              reputation: -10,
+              studentAbility: -8,
+            },
+            type: 'danger',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'parent_talk',
+    title: '难缠的家长',
+    text: '一位家长来机房闹事，说孩子学 OI 耽误了文化课，要求退费并赔偿损失。',
+    minWeek: 15,
+    options: [
+      {
+        id: 'sweet_talker',
+        label: '巧舌如簧，忽悠他',
+        outcomes: [
+          {
+            weight: 40,
+            description: '你小嘴抹了蜜一样，不仅安抚了家长，还让他又续费了一年！',
+            effects: { money: +20000, reputation: +10, bossStress: -10 },
+            type: 'success',
+          },
+          {
+            weight: 60,
+            description: '家长根本不听你忽悠，最终退费走人。',
+            effects: { money: -5000, students: -1, reputation: -5 },
+            type: 'danger',
+          },
+        ],
+      },
+      {
+        id: 'dismiss',
+        label: '直接劝退该学生',
+        outcomes: [
+          {
+            weight: 100,
+            description: '你果断办理了退费手续，把家长请了出去。世界清静了。',
+            effects: { money: -5000, students: -1, bossStress: -5 },
+            type: 'warning',
+          },
+        ],
+      },
+      {
+        id: 'ignore',
+        label: '让教练去处理',
+        outcomes: [
+          {
+            weight: 100,
+            description: '教练被骂得狗血淋头，士气大跌，最终家长还是退费了。',
+            effects: { money: -5000, students: -1, coachMorale: -20 },
+            type: 'danger',
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: 'price_war',
     title: '隔壁机构打价格战',
     text: '同城另一家 OI 机构突然推出 9.9 元 10 节体验课，全城家长群都在转。',
@@ -1905,5 +2010,72 @@ export const RANDOM_EVENTS = [
 }`,
       },
     ],
+  },
+];
+export const INITIAL_STOCKS = [
+  { symbol: 'TCT', name: '企鹅科技', price: 100, history: [100] },
+  { symbol: 'BABA', name: '阿里巴伯', price: 150, history: [150] },
+  { symbol: 'BYD', name: '比鸭迪', price: 200, history: [200] },
+  { symbol: 'MI', name: '大米科技', price: 50, history: [50] },
+  { symbol: 'HW', name: '花为', price: 300, history: [300] },
+];
+
+export const ACHIEVEMENTS = [
+  {
+    id: 'money_maker',
+    name: '【圈钱小天才】',
+    description: '赚了很多钱的结局',
+    condition: (s: any) => s.cash >= 5000000,
+  },
+  {
+    id: 'ioi_student',
+    name: '【因特奶神脑】',
+    description: '有参加 IOI 的选手',
+    condition: (s: any) => s.hadIOIStudent,
+  },
+  {
+    id: 'buddhist',
+    name: '【佛系】',
+    description: '突发事件全部选择不进行操作',
+    condition: (s: any) => s.skippedEventsCount >= 10,
+  },
+  {
+    id: 'reminisce',
+    name: '【我常常追忆过去】',
+    description: '投资环节赔了，错失了抛售点',
+    condition: (s: any) => s.missedSellOpportunities >= 3,
+  },
+  {
+    id: 'sweet_talker',
+    name: '【小嘴抹了蜜】',
+    description: '跟家长交流的那个环节很成功',
+    condition: (s: any) =>
+      s.history.some(
+        (h: any) => h.message.includes('成功沟通加数值极多') || h.message.includes('小嘴抹了蜜')
+      ),
+  },
+  {
+    id: 'bankrupt',
+    name: '【哦哦哦倒闭了】',
+    description: '倒闭结局',
+    condition: (s: any) => s.cash < 0,
+  },
+  {
+    id: 'bro_iron',
+    name: '【兄弟，铁了】',
+    description: '学生有 0 人获得 NOI 奖牌',
+    condition: (s: any) => s.zeroNOIMedalsSeason,
+  },
+  {
+    id: 'almost_bankrupt',
+    name: '【一步之遥】',
+    description: '最后钱剩的很少，差一点就倒闭了结局',
+    condition: (s: any) => s.year > 3 && s.cash < 10000 && s.cash >= 0,
+  },
+  {
+    id: 'op',
+    name: '【op】',
+    description: '学生学会了玩原神看 p 站',
+    condition: (s: any) => s.doneEvents.includes('op-ignore'),
   },
 ];

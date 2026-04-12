@@ -8,6 +8,7 @@ import {
   FACILITY_CONFIG,
   CALENDAR_EVENTS,
 } from '../constants';
+import { buildContestProfile, getEligibleStudents } from '../hooks/useGameLogic';
 
 interface DashboardProps {
   gameState: GameState;
@@ -144,7 +145,17 @@ const Dashboard: React.FC<DashboardProps> = ({
       {/* Decision Panel */}
       {(() => {
         const currentWeekEvent = CALENDAR_EVENTS[gameState.week];
-        const isContestWeek = currentWeekEvent?.type === 'CONTEST';
+        let isContestWeek = currentWeekEvent?.type === 'CONTEST';
+        let showEmptyContestWarning = false;
+
+        if (isContestWeek) {
+          const profile = buildContestProfile(currentWeekEvent);
+          const eligible = getEligibleStudents(gameState, profile);
+          if (['NOI', 'CTT', 'CTS', 'IOI'].includes(profile.mode) && eligible.length === 0) {
+            isContestWeek = false;
+            showEmptyContestWarning = true;
+          }
+        }
 
         if (isContestWeek) {
           return (
@@ -191,6 +202,21 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             <div className="grid flex-1 grid-cols-3 content-start gap-2 overflow-y-auto pr-1">
+              {showEmptyContestWarning && currentWeekEvent && (
+                <button
+                  disabled
+                  className="group relative h-auto cursor-not-allowed overflow-hidden rounded-lg border border-slate-100 bg-slate-50 p-2 text-left opacity-60 transition-all"
+                >
+                  <div>
+                    <div className="mb-1 text-sm leading-tight font-bold text-slate-500">
+                      🏆 {currentWeekEvent.name}
+                    </div>
+                    <div className="line-clamp-2 text-xs text-slate-400">
+                      没有符合条件的学生参赛。
+                    </div>
+                  </div>
+                </button>
+              )}
               {AGENCY_ACTIONS.map((action) => {
                 const themeStyles = {
                   default: {

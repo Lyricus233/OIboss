@@ -35,7 +35,7 @@ const GROUP_LABEL: Record<GroupFilter, string> = {
   ALL: '全部',
   BEGINNER: '普及组',
   INTERMEDIATE: '提高组',
-  OPEN: '公开组',
+  OPEN: '正式组',
 };
 
 const rankClass = (rank: number) => {

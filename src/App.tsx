@@ -14,6 +14,8 @@ import GameOverScreen from './components/GameOverScreen';
 import ContestResultModal from './components/ContestResultModal';
 import { useGameLogic } from './hooks/useGameLogic';
 
+import InvestmentModal from './components/InvestmentModal';
+
 const App: React.FC = () => {
   const {
     gameState,
@@ -35,10 +37,13 @@ const App: React.FC = () => {
     startContest,
     toggleRecommendation,
     getRecommendationQuota,
+    buyStock,
+    sellStock,
   } = useGameLogic();
 
   const [showRecruitModal, setShowRecruitModal] = useState(false);
-  const [showSaveLoadModal, setShowSaveLoadModal] = useState(false); // Add state for SaveLoadModal
+  const [showSaveLoadModal, setShowSaveLoadModal] = useState(false);
+  const [showInvestmentModal, setShowInvestmentModal] = useState(false);
 
   const Footer = () => (
     <footer className="relative z-60 shrink-0 border-t border-slate-200 bg-slate-100 py-1 text-center text-xs text-slate-500">
@@ -66,7 +71,11 @@ const App: React.FC = () => {
 
     return (
       <>
-        <Header gameState={gameState} onOpenSaveLoad={() => setShowSaveLoadModal(true)} />{' '}
+        <Header
+          gameState={gameState}
+          onOpenSaveLoad={() => setShowSaveLoadModal(true)}
+          onOpenInvestment={() => setShowInvestmentModal(true)}
+        />{' '}
         {/* Pass handler to Header */}
         <NotificationContainer
           notifications={gameState.notifications || []}
@@ -100,6 +109,14 @@ const App: React.FC = () => {
             gameState={gameState}
             onClose={() => setShowRecruitModal(false)}
             onRecruit={recruitStudent}
+          />
+        )}
+        {showInvestmentModal && (
+          <InvestmentModal
+            gameState={gameState}
+            onClose={() => setShowInvestmentModal(false)}
+            onBuy={buyStock}
+            onSell={sellStock}
           />
         )}
         {showSaveLoadModal && (

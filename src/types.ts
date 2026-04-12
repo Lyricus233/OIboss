@@ -107,7 +107,33 @@ export interface GameState {
   notifications: Notification[];
   doneEvents: string[];
 
-  recentEvents?: { id: string; week: number }[]; // 冷却事件
+  recentEvents?: { id: string; week: number }[];
+
+  stocks: Stock[];
+  ownedStocks: Record<string, number>;
+
+  achievements: string[];
+
+  totalEarnedFromStocks: number;
+  totalLostFromStocks: number;
+  missedSellOpportunities: number;
+  skippedEventsCount: number;
+  hadIOIStudent: boolean;
+  zeroNOIMedalsSeason: boolean;
+  participatedNOIThisSeason: boolean;
+}
+
+export interface Stock {
+  symbol: string;
+  name: string;
+  price: number;
+  history: number[];
+}
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
 }
 
 export interface Notification {

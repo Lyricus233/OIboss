@@ -23,6 +23,8 @@ import {
   INITIAL_CASH,
   CALENDAR_EVENTS,
   REGIONAL_NAMES,
+  INITIAL_STOCKS,
+  ACHIEVEMENTS,
 } from '../constants';
 
 const REPUTATION_MAX = 200;
@@ -262,7 +264,32 @@ interface ContestProfile {
   >;
 }
 
-const buildContestProfile = (event: CalendarEvent): ContestProfile => {
+export const getEligibleStudents = (s: GameState, profile: ContestProfile) => {
+  let eligibleStudents: Student[] = [];
+  if (profile.mode === 'CSP2') {
+    eligibleStudents = s.students.filter(
+      (st) => (st.passedContests || []).includes('CSP-J/S 第一轮') || st.isRecommended
+    );
+  } else {
+    eligibleStudents = s.students.filter((student) => {
+      const history = student.passedContests || [];
+      if (profile.mode === 'CSP1') return !student.isRecommended;
+      if (profile.mode === 'NOIP') return history.includes('CSP-J/S 第二轮');
+      if (profile.mode === 'NOIWC') return history.includes('CSP-J/S 第二轮');
+      if (profile.mode === 'PROVINCIAL') return history.includes('NOIP');
+      if (profile.mode === 'APIO')
+        return history.includes('NOIP_一等奖') || history.includes('CSP2_一等奖');
+      if (profile.mode === 'NOI') return history.includes('省队选拔');
+      if (profile.mode === 'CTT') return history.includes('NOI_一等奖');
+      if (profile.mode === 'CTS') return history.includes('NOI_一等奖');
+      if (profile.mode === 'IOI') return history.includes('CTS (国家队选拔)');
+      return true;
+    });
+  }
+  return eligibleStudents;
+};
+
+export const buildContestProfile = (event: CalendarEvent): ContestProfile => {
   const name = event.name;
 
   let mode: ContestMode = 'GENERAL';
@@ -513,6 +540,19 @@ export const useGameLogic = () => {
     modalContent: null,
     notifications: [],
     doneEvents: [],
+
+    stocks: [],
+    ownedStocks: {},
+
+    achievements: [],
+
+    totalEarnedFromStocks: 0,
+    totalLostFromStocks: 0,
+    missedSellOpportunities: 0,
+    skippedEventsCount: 0,
+    hadIOIStudent: false,
+    zeroNOIMedalsSeason: false,
+    participatedNOIThisSeason: false,
   });
 
   const [setupForm, setSetupForm] = useState({
@@ -712,6 +752,16 @@ export const useGameLogic = () => {
       currentContestResult: null,
       doneEvents: [],
       statsHistory: [{ week: 1, cash: Math.round(cash), reputation: Math.max(0, reputation) }],
+      stocks: JSON.parse(JSON.stringify(INITIAL_STOCKS)),
+      ownedStocks: {},
+      achievements: [],
+      totalEarnedFromStocks: 0,
+      totalLostFromStocks: 0,
+      missedSellOpportunities: 0,
+      skippedEventsCount: 0,
+      hadIOIStudent: false,
+      zeroNOIMedalsSeason: false,
+      participatedNOIThisSeason: false,
       history: [
         {
           id: 'init',
@@ -845,6 +895,23 @@ export const useGameLogic = () => {
           for (let i = 0; i < remaining; i++) {
             const idx = s.students.findIndex((st) => st.tier === 'ADVANCED');
             if (idx !== -1) s.students.splice(idx, 1);
+          }
+        }
+      }
+    }
+
+    if (effects.students) {
+      if (effects.students > 0) {
+        for (let i = 0; i < effects.students; i++) {
+          if (!enrollStudent('BEGINNER', `evt-beg-generic-${s.totalWeeks}-${i}`)) break;
+        }
+      } else if (effects.students < 0) {
+        const toRemove = Math.abs(effects.students);
+        for (let i = 0; i < toRemove; i++) {
+          if (s.students.length > 0) {
+            // Remove a random student
+            const idx = Math.floor(Math.random() * s.students.length);
+            s.students.splice(idx, 1);
           }
         }
       }
@@ -1478,6 +1545,11 @@ export const useGameLogic = () => {
     const opt = event.options.find((o: any) => o.id === optionId);
     if (!opt) return;
 
+    if (optionId === 'ignore') {
+      s.skippedEventsCount++;
+      s.doneEvents.push(`${eventId}-ignore`);
+    }
+
     if (opt.outcomes && opt.outcomes.length > 0) {
       const rand = Math.random() * 100;
       let sum = 0;
@@ -1591,74 +1663,32 @@ export const useGameLogic = () => {
   };
 
   const simulateWeekEconomy = (s: GameState) => {
-    const tuition = s.students.reduce((sum, st) => sum + calculateTuition(st), 0);
-    let cost = s.fixedCost;
+    const rent = Math.round(s.fixedCost / 4);
+    s.cash -= rent;
 
     if (s.coachMorale < 50) {
-      cost += 2000;
-    }
-    if (s.bossStress > 80) {
-      s.reputation -= 1;
+      s.cash -= 2000;
     }
 
-    const netIncome = tuition - cost;
-    s.cash += netIncome;
+    s.students.forEach((student) => {
+      s.cash += calculateTuition(student);
+    });
 
-    addLog(
-      s,
-      `本周财务：学费 +¥${tuition.toLocaleString()}，房租 -¥${cost.toLocaleString()}。净收支：${netIncome >= 0 ? '+' : ''}¥${netIncome.toLocaleString()}`,
-      netIncome >= 0 ? 'success' : 'warning'
-    );
+    // Update stocks
+    s.stocks.forEach((stock) => {
+      const change = (Math.random() - 0.5) * 0.2; // -10% to +10%
+      let newPrice = stock.price * (1 + change);
+      if (newPrice < 10) newPrice = 10;
+      stock.price = Math.round(newPrice * 100) / 100;
+      stock.history.push(stock.price);
+      if (stock.history.length > 10) stock.history.shift();
 
-    const triggerChance = s.potentialStudents > 10 ? 0.5 : 0.25;
-    if (s.potentialStudents > 0 && Math.random() < triggerChance) {
-      const gained = Math.round(
-        Math.random() * (s.potentialStudents / 2) + s.potentialStudents / 3
-      );
-
-      const availableSpace = Math.max(0, s.maxStudents - s.students.length);
-      const realGained = Math.min(gained, availableSpace);
-
-      if (realGained > 0) {
-        const existingNames = new Set(s.students.map((st) => st.name));
-        for (let i = 0; i < realGained; i++) {
-          const student = generateStudent(
-            `auto-${s.totalWeeks}-${i}`,
-            'BEGINNER',
-            undefined,
-            existingNames,
-            s.province,
-            false,
-            s.week
-          );
-          existingNames.add(student.name);
-          s.students.push(student);
-        }
-        addLog(s, `由于前期运营，本周新增 ${realGained} 名普及组学生加入。`, 'success');
+      // Missed opportunities tracking: if price went down > 5% and user holds stocks
+      const prev = stock.history[stock.history.length - 2];
+      if (prev && stock.price < prev * 0.95 && s.ownedStocks[stock.symbol] > 0) {
+        s.missedSellOpportunities++;
       }
-
-      if (gained > realGained) {
-        addLog(s, `场地已满，${gained - realGained} 名慕名而来的学生因无法报名而离开。`, 'warning');
-      }
-
-      s.potentialStudents = Math.max(0, s.potentialStudents - gained);
-    }
-
-    let churnBase = 0;
-    if (s.studentSatisfaction < 50) churnBase += 0.03;
-    if (s.reputation < 40) churnBase += 0.02;
-    if (s.bossStress > 90) churnBase += 0.01;
-    if (churnBase > 0 && s.students.length > 0) {
-      const lost = Math.round(s.students.length * churnBase * Math.random());
-      if (lost > 0) {
-        s.students.splice(0, lost);
-        addLog(s, `因为满意度不高或压力过大，本周大约有 ${lost} 名学生悄悄退费或跑路。`, 'danger');
-      }
-    }
-
-    if (s.cash < 0) {
-      addLog(s, '你的账户进入赤字，银行开始提醒你注意现金流。', 'danger');
-    }
+    });
   };
 
   const simulateContestIfAny = (s: GameState) => {
@@ -1669,38 +1699,23 @@ export const useGameLogic = () => {
     const problems = profile.problems;
     const totalPossibleScore = problems.length * 100;
 
-    let eligibleStudents: Student[] = [];
+    let eligibleStudents: Student[] = getEligibleStudents(s, profile);
     let bypassedStudentIds: string[] = [];
 
     if (profile.mode === 'CSP2') {
       bypassedStudentIds = s.students.filter((st) => st.isRecommended).map((st) => st.id);
-      eligibleStudents = s.students.filter(
-        (st) => (st.passedContests || []).includes('CSP-J/S 第一轮') || st.isRecommended
-      );
-
       // Clear the recommendations after reading them
       s.usedRecommendationQuota = 0;
       s.students.forEach((st) => {
         st.isRecommended = false;
       });
-    } else {
-      eligibleStudents = s.students.filter((student) => {
-        const history = student.passedContests || [];
-        if (profile.mode === 'CSP1') return !student.isRecommended;
-        if (profile.mode === 'NOIP') return history.includes('CSP-J/S 第二轮');
-        if (profile.mode === 'NOIWC') return history.includes('CSP-J/S 第二轮');
-        if (profile.mode === 'PROVINCIAL') return history.includes('NOIP');
-        if (profile.mode === 'APIO')
-          return history.includes('NOIP_一等奖') || history.includes('CSP2_一等奖');
-        if (profile.mode === 'NOI') return history.includes('省队选拔');
-        if (profile.mode === 'CTT') return history.includes('NOI_一等奖');
-        if (profile.mode === 'CTS') return history.includes('NOI_一等奖');
-        if (profile.mode === 'IOI') return history.includes('CTS (国家队选拔)');
-        return true;
-      });
     }
 
     const participants = eligibleStudents.sort((a, b) => b.ability - a.ability);
+
+    if (profile.mode === 'NOI' && participants.length > 0) {
+      s.participatedNOIThisSeason = true;
+    }
 
     if (participants.length === 0) {
       addLog(s, `${event.name} 开始了，但机构内没有符合参赛资格的学生。`, 'warning');
@@ -2168,16 +2183,59 @@ export const useGameLogic = () => {
     return true;
   };
 
+  const buyStock = (symbol: string, shares: number) => {
+    const s = { ...gameState };
+    const stock = s.stocks.find((st) => st.symbol === symbol);
+    if (!stock) return;
+    const cost = stock.price * shares;
+    if (s.cash >= cost) {
+      s.cash -= cost;
+      s.ownedStocks[symbol] = (s.ownedStocks[symbol] || 0) + shares;
+      addLog(s, `买入 ${shares} 股 ${stock.name}`, 'info');
+      setGameState(s);
+    }
+  };
+
+  const sellStock = (symbol: string, shares: number) => {
+    const s = { ...gameState };
+    const stock = s.stocks.find((st) => st.symbol === symbol);
+    if (!stock || !s.ownedStocks[symbol] || s.ownedStocks[symbol] < shares) return;
+    const revenue = stock.price * shares;
+    s.cash += revenue;
+    s.ownedStocks[symbol] -= shares;
+    addLog(s, `抛售 ${shares} 股 ${stock.name}`, 'success');
+    s.totalEarnedFromStocks += revenue; // Simple tracking
+    setGameState(s);
+  };
+
+  const checkAchievements = (s: GameState) => {
+    ACHIEVEMENTS.forEach((achievement) => {
+      if (!s.achievements.includes(achievement.id) && achievement.condition(s)) {
+        s.achievements.push(achievement.id);
+        addNotification(s, `解锁成就：${achievement.name}(${achievement.description})`, 'success');
+      }
+    });
+  };
+
   const checkGameOver = (s: GameState) => {
     if (s.status === 'GAME_OVER') return true;
 
+    const formatAchievements = (achievements: string[]) => {
+      const achieved = achievements
+        .map((id) => ACHIEVEMENTS.find((a) => a.id === id)?.name)
+        .filter(Boolean)
+        .join('、');
+      return achieved ? `\n达成成就：${achieved}` : '';
+    };
+
     if (s.cash < 0) {
+      if (!s.achievements.includes('bankrupt')) s.achievements.push('bankrupt');
       s.status = 'GAME_OVER';
       s.gameOverReason = '资金链断裂';
       s.modalContent = {
         type: 'ALERT',
-        title: '结局：资金链断裂',
-        description: `在第 ${s.year} 年第 ${s.week} 周，你的机构因为现金流问题倒下。也许下次应该更保守一点，或者先当几年教练再开机构。`,
+        title: '结局：【哦哦哦倒闭了】',
+        description: `在第 ${s.year} 年第 ${s.week} 周，你的机构因为现金流问题倒下。${formatAchievements(s.achievements)}`,
       };
       return true;
     }
@@ -2188,8 +2246,7 @@ export const useGameLogic = () => {
       s.modalContent = {
         type: 'ALERT',
         title: '结局：老板 AFO',
-        description:
-          '长期高压让你彻底崩溃，你选择转行做互联网大厂打工人。你发现，相比和家长沟通，写代码好像没那么难受。',
+        description: `长期高压让你彻底崩溃，你选择转行做互联网大厂打工人。你发现，相比和家长沟通，写代码好像没那么难受。${formatAchievements(s.achievements)}`,
       };
       return true;
     }
@@ -2200,7 +2257,7 @@ export const useGameLogic = () => {
       s.modalContent = {
         type: 'ALERT',
         title: '结局：团队解散',
-        description: '教练团队士气低落，集体辞职。没有了老师，机构自然无法维持。',
+        description: `教练团队士气低落，集体辞职。没有了老师，机构自然无法维持。${formatAchievements(s.achievements)}`,
       };
       return true;
     }
@@ -2211,12 +2268,15 @@ export const useGameLogic = () => {
       s.modalContent = {
         type: 'ALERT',
         title: '结局：口碑崩盘',
-        description: '学生和家长对机构彻底失望，纷纷退费离场。你的机构在骂声中倒闭。',
+        description: `学生和家长对机构彻底失望，纷纷退费离场。你的机构在骂声中倒闭。${formatAchievements(s.achievements)}`,
       };
       return true;
     }
 
     if (s.year > 3) {
+      if (s.cash < 10000 && !s.achievements.includes('almost_bankrupt')) {
+        s.achievements.push('almost_bankrupt');
+      }
       s.status = 'GAME_OVER';
 
       const allHistory = s.students.flatMap((st) => st.passedContests || []);
@@ -2226,7 +2286,7 @@ export const useGameLogic = () => {
         s.modalContent = {
           type: 'RESULT',
           title: '终局：荣耀教练',
-          description: `历经 3 年拼搏，你的队伍杀入 IOI 国际赛场，斩获无上荣誉！你已成为名震江湖的顶尖金牌教练！\n最终资金：¥ ${Math.round(s.cash).toLocaleString()}\n培养学生：${s.students.length} 人\n最终口碑：${Math.round(s.reputation)}/100`,
+          description: `历经 3 年拼搏，你的队伍杀入 IOI 国际赛场，斩获无上荣誉！你已成为名震江湖的顶尖金牌教练！\n最终资金：¥ ${Math.round(s.cash).toLocaleString()}\n培养学生：${s.students.length} 人\n最终口碑：${Math.round(s.reputation)}/100${formatAchievements(s.achievements)}`,
         };
       } else if (
         allHistory.some(
@@ -2237,14 +2297,14 @@ export const useGameLogic = () => {
         s.modalContent = {
           type: 'RESULT',
           title: '终局：金牌教练',
-          description: `历经 3 年经营，你的队伍斩获了 NOI 金牌，进入国家集训队。学校声誉大增，你成为了远近闻名的金牌教练！\n最终资金：¥ ${Math.round(s.cash).toLocaleString()}\n培养学生：${s.students.length} 人\n最终口碑：${Math.round(s.reputation)}/100`,
+          description: `历经 3 年经营，你的队伍斩获了 NOI 金牌，进入国家集训队。学校声誉大增，你成为了远近闻名的金牌教练！\n最终资金：¥ ${Math.round(s.cash).toLocaleString()}\n培养学生：${s.students.length} 人\n最终口碑：${Math.round(s.reputation)}/100${formatAchievements(s.achievements)}`,
         };
       } else {
         s.gameOverReason = '游戏通关';
         s.modalContent = {
           type: 'RESULT',
           title: '终局：平淡小满',
-          description: `经过 3 年经营，落幕时虽未名震天下，但也算稳扎稳打。\n最终资金：¥ ${Math.round(s.cash).toLocaleString()}\n培养学生：${s.students.length} 人\n最终口碑：${Math.round(s.reputation)}/100`,
+          description: `经过 3 年经营，落幕时虽未名震天下，但也算稳扎稳打。\n最终资金：¥ ${Math.round(s.cash).toLocaleString()}\n培养学生：${s.students.length} 人\n最终口碑：${Math.round(s.reputation)}/100${formatAchievements(s.achievements)}`,
         };
       }
       return true;
@@ -2267,6 +2327,7 @@ export const useGameLogic = () => {
         history.includes('IOI')
       ) {
         newTier = 'ADVANCED';
+        if (history.includes('IOI')) s.hadIOIStudent = true;
       } else if (abilityScore >= 80) {
         newTier = 'ADVANCED';
       } else if (newTier === 'BEGINNER') {
@@ -2314,8 +2375,11 @@ export const useGameLogic = () => {
     if (s.week > 48) {
       s.week = 1;
       s.year += 1;
+      let hasNOIMedal = false;
       s.students.forEach((st) => {
-        const keepsNOI = st.passedContests?.includes('NOI');
+        const keepsNOI =
+          st.passedContests?.includes('NOI') || st.passedContests?.includes('NOI_一等奖');
+        if (keepsNOI) hasNOIMedal = true;
         const keepsAPIOQualifiers =
           st.passedContests?.filter((tag) => tag.endsWith('_一等奖')) || [];
         st.passedContests = [...keepsAPIOQualifiers];
@@ -2323,6 +2387,10 @@ export const useGameLogic = () => {
         st.lastContestStatus = undefined;
         st.lastContestName = undefined;
       });
+      if (!hasNOIMedal && s.participatedNOIThisSeason) {
+        s.zeroNOIMedalsSeason = true;
+      }
+      s.participatedNOIThisSeason = false;
       addLog(s, `新的赛季开始了，机构进入第 ${s.year} 赛季。`, 'success');
     }
     s.actedThisWeek = false;
@@ -2361,6 +2429,7 @@ export const useGameLogic = () => {
 
     ensureUniqueStudentNames(s);
 
+    checkAchievements(s);
     setGameState(s);
   };
 
@@ -2585,5 +2654,7 @@ export const useGameLogic = () => {
     startContest,
     toggleRecommendation,
     getRecommendationQuota,
+    buyStock,
+    sellStock,
   };
 };

@@ -7,9 +7,10 @@ import { formatMoney } from '../../utils';
 interface HeaderProps {
   gameState: GameState;
   onOpenSaveLoad: () => void;
+  onOpenInvestment: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ gameState, onOpenSaveLoad }) => {
+const Header: React.FC<HeaderProps> = ({ gameState, onOpenSaveLoad, onOpenInvestment }) => {
   const provinceName = PROVINCES.find((p) => p.id === gameState.province)?.name;
 
   return (
@@ -76,6 +77,15 @@ const Header: React.FC<HeaderProps> = ({ gameState, onOpenSaveLoad }) => {
       </div>
 
       <div className="flex items-center gap-6">
+        <button
+          onClick={onOpenInvestment}
+          className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800"
+          title="投资系统"
+        >
+          <DollarSign size={16} />
+          <span>投资</span>
+        </button>
+
         <button
           onClick={onOpenSaveLoad}
           className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800"
