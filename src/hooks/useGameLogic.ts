@@ -2747,7 +2747,7 @@ export const useGameLogic = () => {
               const st = s.students.find((x) => x.id === studentId);
               if (st) {
                 const rand = Math.random();
-                const coachBoost = (s.coachLevel - 1) * 0.05;
+                const coachBoost = s.coachLevel * 0.05;
                 if (st.tier === 'BEGINNER') {
                   st.ability = Math.min(100, st.ability + 5 + coachBoost * 10);
                   addLog(
@@ -2776,7 +2776,7 @@ export const useGameLogic = () => {
                     );
                   }
                 } else {
-                  const successRate = Math.min(0.85, 0.5 + coachBoost);
+                  const successRate = Math.min(0.85, 0.6 + coachBoost);
                   const warningRate = Math.min(0.95, 0.8 + coachBoost);
                   if (rand < successRate) {
                     const gain = 1 + Math.random() * 2 + coachBoost * 5;
