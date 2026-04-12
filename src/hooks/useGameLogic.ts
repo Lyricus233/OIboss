@@ -384,6 +384,7 @@ export const buildContestProfile = (event: CalendarEvent): ContestProfile => {
     return {
       mode,
       hasAdvancement: false,
+      isHighLevel: true,
       problems:
         problems.length > 0
           ? problems
@@ -2657,27 +2658,76 @@ export const useGameLogic = () => {
         description: `当前能力: ${student.ability.toFixed(0)}\n当前班级: ${student.tier === 'BEGINNER' ? '普及组' : student.tier === 'INTERMEDIATE' ? '提高组' : '省选组'}\n普及组学生必须升入提高组才能参加 NOIP 及其后续比赛。`,
         options: [
           {
-            label: '名师一对一特训 (¥3000) [+5能力]',
+            label: '名师一对一特训 (¥5000) [能力提升, 阶段越高越困难]',
             action: () => {
               let s = { ...gameState };
-              if (s.cash < 3000) {
+              if (s.cash < 5000) {
                 addNotification(s, '资金不足！', 'error');
                 s.status = 'PLAYING';
                 s.modalContent = null;
                 setGameState(s);
                 return;
               }
-              s.cash -= 3000;
+              s.cash -= 5000;
               s.history = [...s.history];
               s.students = s.students.map((st) => ({ ...st }));
               const st = s.students.find((x) => x.id === studentId);
               if (st) {
-                st.ability = Math.min(100, st.ability + 5);
-                addLog(
-                  s,
-                  `花费 ¥3000 为 ${st.name} 安排了名师一对一特训，能力显著提升！`,
-                  'success'
-                );
+                const rand = Math.random();
+                if (st.tier === 'BEGINNER') {
+                  st.ability = Math.min(100, st.ability + 5);
+                  addLog(
+                    s,
+                    `花费 ¥5000 为 ${st.name} 安排名师特训，基础扎实，能力显著提升(+5)！`,
+                    'success'
+                  );
+                } else if (st.tier === 'INTERMEDIATE') {
+                  if (rand < 0.8) {
+                    const gain = 2 + Math.random() * 2;
+                    st.ability = Math.min(100, st.ability + gain);
+                    st.stress = Math.min(100, st.stress + 5);
+                    addLog(
+                      s,
+                      `花费 ¥5000 为 ${st.name} 安排名师特训，算法水平稳步提升(+${gain.toFixed(1)})。`,
+                      'success'
+                    );
+                  } else {
+                    st.stress = Math.min(100, st.stress + 15);
+                    st.mood = Math.max(0, st.mood - 10);
+                    addLog(
+                      s,
+                      `花费 ¥5000 特训，但 ${st.name} 遇到思维瓶颈，未能吸收知识且压力增加。`,
+                      'warning'
+                    );
+                  }
+                } else {
+                  if (rand < 0.5) {
+                    const gain = 1 + Math.random() * 1;
+                    st.ability = Math.min(100, st.ability + gain);
+                    st.stress = Math.min(100, st.stress + 5);
+                    addLog(
+                      s,
+                      `花费 ¥5000 为 ${st.name} 安排省选级特训，突破了部分难题(+${gain.toFixed(1)})！`,
+                      'success'
+                    );
+                  } else if (rand < 0.8) {
+                    st.stress = Math.min(100, st.stress + 15);
+                    addLog(
+                      s,
+                      `花费 ¥5000 特训，省选知识过于晦涩，${st.name} 毫无头绪，倍感压力。`,
+                      'warning'
+                    );
+                  } else {
+                    st.ability = Math.max(0, st.ability - 1);
+                    st.stress = Math.min(100, st.stress + 25);
+                    st.mood = Math.max(0, st.mood - 20);
+                    addLog(
+                      s,
+                      `花费 ¥5000 特训，${st.name} 强行理解高级算法导致走火入魔，能力下降(-1)！`,
+                      'danger'
+                    );
+                  }
+                }
               }
               s.status = 'PLAYING';
               s.modalContent = null;
@@ -2688,10 +2738,10 @@ export const useGameLogic = () => {
           ...(student.tier !== 'ADVANCED'
             ? [
                 {
-                  label: `强制破格升班 (¥${student.tier === 'BEGINNER' ? 5000 : 10000})`,
+                  label: `强制破格升班 (¥${student.tier === 'BEGINNER' ? 20000 : 30000})`,
                   action: () => {
                     let s = { ...gameState };
-                    const cost = student.tier === 'BEGINNER' ? 5000 : 10000;
+                    const cost = student.tier === 'BEGINNER' ? 20000 : 30000;
                     if (s.cash < cost) {
                       addNotification(s, '资金不足！', 'error');
                       s.status = 'PLAYING';
