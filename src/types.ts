@@ -132,6 +132,7 @@ export interface GameState {
 
   stocks: Stock[];
   ownedStocks: Record<string, number>;
+  stockCostBasis: Record<string, { totalCost: number; shares: number }>;
 
   achievements: string[];
 

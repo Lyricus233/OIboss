@@ -26,6 +26,7 @@ import {
   INITIAL_STOCKS,
   ACHIEVEMENTS,
 } from '../constants';
+import { formatMoney } from '../utils/format';
 
 const REPUTATION_MAX = 200;
 
@@ -556,6 +557,7 @@ export const useGameLogic = () => {
 
     stocks: [],
     ownedStocks: {},
+    stockCostBasis: {},
 
     achievements: [],
 
@@ -767,6 +769,7 @@ export const useGameLogic = () => {
       statsHistory: [{ week: 1, cash: Math.round(cash), reputation: Math.max(0, reputation) }],
       stocks: JSON.parse(JSON.stringify(INITIAL_STOCKS)),
       ownedStocks: {},
+      stockCostBasis: {},
       achievements: [],
       totalEarnedFromStocks: 0,
       totalLostFromStocks: 0,
@@ -2200,27 +2203,71 @@ export const useGameLogic = () => {
   };
 
   const buyStock = (symbol: string, shares: number) => {
-    const s = { ...gameState };
+    if (shares <= 0) return;
+    const s = { ...gameState, stockCostBasis: { ...(gameState.stockCostBasis || {}) } };
     const stock = s.stocks.find((st) => st.symbol === symbol);
     if (!stock) return;
     const cost = stock.price * shares;
-    if (s.cash >= cost) {
-      s.cash -= cost;
-      s.ownedStocks[symbol] = (s.ownedStocks[symbol] || 0) + shares;
-      addLog(s, `买入 ${shares} 股 ${stock.name}`, 'info');
-      setGameState(s);
-    }
+    if (s.cash < cost) return;
+
+    s.cash -= cost;
+    s.ownedStocks[symbol] = (s.ownedStocks[symbol] || 0) + shares;
+
+    const prev = s.stockCostBasis[symbol] || { totalCost: 0, shares: 0 };
+    s.stockCostBasis[symbol] = {
+      totalCost: prev.totalCost + cost,
+      shares: prev.shares + shares,
+    };
+
+    addLog(
+      s,
+      `买入 ${shares} 股 ${stock.name} @¥${stock.price.toFixed(2)}，成交 ${formatMoney(cost)}`,
+      'info'
+    );
+    setGameState(s);
   };
 
   const sellStock = (symbol: string, shares: number) => {
-    const s = { ...gameState };
+    if (shares <= 0) return;
+    const s = { ...gameState, stockCostBasis: { ...(gameState.stockCostBasis || {}) } };
     const stock = s.stocks.find((st) => st.symbol === symbol);
     if (!stock || !s.ownedStocks[symbol] || s.ownedStocks[symbol] < shares) return;
+
     const revenue = stock.price * shares;
     s.cash += revenue;
     s.ownedStocks[symbol] -= shares;
-    addLog(s, `抛售 ${shares} 股 ${stock.name}`, 'success');
-    s.totalEarnedFromStocks += revenue; // Simple tracking
+
+    const basis = s.stockCostBasis[symbol] || { totalCost: 0, shares: 0 };
+    const avgCost = basis.shares > 0 ? basis.totalCost / basis.shares : 0;
+    const costOfSold = avgCost * shares;
+    const pnl = revenue - costOfSold;
+    const pnlPct = avgCost > 0 ? (pnl / costOfSold) * 100 : 0;
+
+    if (basis.shares - shares <= 0) {
+      delete s.stockCostBasis[symbol];
+    } else {
+      s.stockCostBasis[symbol] = {
+        totalCost: Math.max(0, basis.totalCost - costOfSold),
+        shares: basis.shares - shares,
+      };
+    }
+
+    if (pnl >= 0) {
+      s.totalEarnedFromStocks += pnl;
+      addLog(
+        s,
+        `抛售 ${shares} 股 ${stock.name} @¥${stock.price.toFixed(2)}，盈利 ${formatMoney(pnl)} (+${pnlPct.toFixed(2)}%)`,
+        'success'
+      );
+    } else {
+      const loss = -pnl;
+      s.totalLostFromStocks += loss;
+      addLog(
+        s,
+        `抛售 ${shares} 股 ${stock.name} @¥${stock.price.toFixed(2)}，亏损 ${formatMoney(loss)} (${pnlPct.toFixed(2)}%)`,
+        'danger'
+      );
+    }
     setGameState(s);
   };
 
@@ -2491,7 +2538,7 @@ export const useGameLogic = () => {
     ];
 
     const projectedTuition = s.students.reduce((sum, st) => sum + calculateTuition(st), 0);
-    const projectedCost = s.fixedCost + (s.coachMorale < 40 ? 1500 : 0);
+    const projectedCost = Math.round(s.fixedCost / 4) + (s.coachMorale < 40 ? 1500 : 0);
 
     if (s.cash + projectedTuition < projectedCost) {
       addNotification(s, '警告：预计下周资金将不足以支付房租！请尽快筹集资金！', 'error');

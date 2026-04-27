@@ -2013,11 +2013,11 @@ export const RANDOM_EVENTS = [
   },
 ];
 export const INITIAL_STOCKS = [
-  { symbol: 'TCT', name: '企鹅科技', price: 100, history: [100] },
-  { symbol: 'BABA', name: '阿里巴伯', price: 150, history: [150] },
-  { symbol: 'BYD', name: '比鸭迪', price: 200, history: [200] },
-  { symbol: 'MI', name: '大米科技', price: 50, history: [50] },
-  { symbol: 'HW', name: '花为', price: 300, history: [300] },
+  { symbol: 'LG', name: '浴咕科技', price: 100, history: [100] },
+  { symbol: 'CF', name: '码场控股', price: 150, history: [150] },
+  { symbol: 'AT', name: '挨踢国际', price: 200, history: [200] },
+  { symbol: '€€£', name: '€€£ Inc.', price: 50, history: [50] },
+  { symbol: 'LTC', name: '力扣集团', price: 300, history: [300] },
 ];
 
 export const ACHIEVEMENTS = [

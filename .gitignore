@@ -5,3 +5,5 @@ yarn.lock
 
 dist/*
 .env
+.claude
+.vscode

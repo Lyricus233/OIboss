@@ -24,6 +24,10 @@ export const importGameState = (data: string): GameState | null => {
       throw new Error('Invalid save data format');
     }
 
+    if (!parsed.stockCostBasis || typeof parsed.stockCostBasis !== 'object') {
+      parsed.stockCostBasis = {};
+    }
+
     return parsed as GameState;
   } catch (err) {
     console.error('Import failed:', err);
