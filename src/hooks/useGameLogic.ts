@@ -226,11 +226,11 @@ export const generateStudent = (
 };
 
 export const calculateTuition = (student: Student) => {
-  let extraTuition = 200;
-  if (student.tier === 'ADVANCED') extraTuition = 2000;
-  else if (student.tier === 'INTERMEDIATE') extraTuition = 1500;
+  let extraTuition = 350;
+  if (student.tier === 'ADVANCED') extraTuition = 2200;
+  else if (student.tier === 'INTERMEDIATE') extraTuition = 1600;
 
-  let base = Math.floor(student.ability * 40) + extraTuition;
+  let base = Math.floor(student.ability * 45) + extraTuition;
 
   if (student.tags && student.tags.includes('富二代')) {
     const tag = TAGS.find((t) => t.name === '富二代');
@@ -1604,7 +1604,7 @@ export const useGameLogic = () => {
     let totalSatisfactionBonus = 0;
 
     s.students.forEach((student) => {
-      const baseGrowth = 0.15 + student.talent * 0.003 + s.coachLevel * 0.18;
+      const baseGrowth = 0.25 + student.talent * 0.004 + s.coachLevel * 0.2;
 
       const diminishingFactor = Math.max(0.1, (100 - student.ability) / 100);
       let growth = baseGrowth * diminishingFactor;
@@ -1630,8 +1630,8 @@ export const useGameLogic = () => {
       growth += Math.random() * 0.4 - 0.1;
       growth = Math.max(0, growth);
 
-      let stressGain = 1.0 + s.coachLevel * 0.4;
-      if (tags.includes('卷王')) stressGain += 2;
+      let stressGain = 0.8 + s.coachLevel * 0.3;
+      if (tags.includes('卷王')) stressGain += 1.5;
       if (tags.includes('勤奋')) stressGain += 1;
 
       if (tags.includes('摸鱼')) stressGain -= 1;
@@ -1662,7 +1662,7 @@ export const useGameLogic = () => {
 
       if (student.ability > 100) student.ability = 100;
 
-      student.stress = Math.max(0, student.stress - s.facilityLevel * 0.5);
+      student.stress = Math.max(0, student.stress - (1 + s.facilityLevel * 0.8));
     });
 
     if (totalSatisfactionBonus > 0) {
@@ -1680,8 +1680,8 @@ export const useGameLogic = () => {
     const rent = Math.round(s.fixedCost / 4);
     s.cash -= rent;
 
-    if (s.coachMorale < 50) {
-      s.cash -= 2000;
+    if (s.coachMorale < 40) {
+      s.cash -= 1500;
     }
 
     s.students.forEach((student) => {
@@ -2377,32 +2377,36 @@ export const useGameLogic = () => {
     s.students.forEach((student) => {
       let quitChance = 0;
 
-      if (student.stress >= 85) {
-        quitChance += (student.stress - 80) * 0.01;
+      if (student.stress >= 90) {
+        quitChance += (student.stress - 85) * 0.01;
       }
-      if (student.mood <= 20) {
-        quitChance += (25 - student.mood) * 0.01;
+      if (student.mood <= 15) {
+        quitChance += (20 - student.mood) * 0.01;
       }
 
       if (quitChance > 0) {
         const tags = student.tags || [];
-        if (tags.includes('玻璃心')) quitChance *= 1.8;
-        if (tags.includes('大心脏')) quitChance *= 0.3;
+        if (tags.includes('玻璃心')) quitChance *= 1.5;
+        if (tags.includes('大心脏')) quitChance *= 0.25;
         if (tags.includes('卷王')) {
-          if (student.stress > 80) quitChance -= (student.stress - 80) * 0.008;
+          if (student.stress > 80) quitChance -= (student.stress - 80) * 0.006;
         }
         if (tags.includes('摸鱼') || tags.includes('懒狗')) {
-          if (student.stress >= 70) quitChance *= 1.3;
+          if (student.stress >= 70) quitChance *= 1.2;
         }
 
-        if (student.tier === 'ADVANCED') quitChance *= 0.6;
-        else if (student.tier === 'INTERMEDIATE') quitChance *= 0.8;
+        if (student.tier === 'ADVANCED') quitChance *= 0.5;
+        else if (student.tier === 'INTERMEDIATE') quitChance *= 0.75;
+
+        quitChance *= Math.max(0.5, 1 - s.facilityLevel * 0.1);
+
+        quitChance = Math.max(0, Math.min(0.12, quitChance));
 
         if (Math.random() < quitChance) {
           let reason = '';
-          if (student.stress >= 85 && student.mood <= 20)
+          if (student.stress >= 90 && student.mood <= 15)
             reason = '压力极大且心情极度低落，彻底崩溃了';
-          else if (student.stress >= 85) reason = '实在无法承受如此高强度的压力';
+          else if (student.stress >= 90) reason = '实在无法承受如此高强度的压力';
           else reason = '失去了对信奥的兴趣和动力';
 
           quitStudents.push({ student, reason });
@@ -2420,8 +2424,8 @@ export const useGameLogic = () => {
         addLog(s, `【退队】${student.name} 因为${reason}，选择了退出机构！`, 'danger');
       });
 
-      const satisfactionPenalty = quitStudents.length * 5;
-      const reputationPenalty = quitStudents.length * 2;
+      const satisfactionPenalty = Math.min(20, quitStudents.length * 3);
+      const reputationPenalty = Math.min(10, Math.ceil(quitStudents.length * 1.5));
       s.studentSatisfaction = Math.max(0, s.studentSatisfaction - satisfactionPenalty);
       s.reputation = Math.max(0, s.reputation - reputationPenalty);
 
@@ -2445,9 +2449,9 @@ export const useGameLogic = () => {
     checkStudentResignations(s);
 
     if (!s.actedThisWeek) {
-      s.bossStress += 2;
+      s.bossStress += 1.5;
     } else {
-      s.bossStress += 1;
+      s.bossStress += 0.6;
     }
 
     s.week += 1;
@@ -2487,7 +2491,7 @@ export const useGameLogic = () => {
     ];
 
     const projectedTuition = s.students.reduce((sum, st) => sum + calculateTuition(st), 0);
-    const projectedCost = s.fixedCost + (s.coachMorale < 50 ? 2000 : 0);
+    const projectedCost = s.fixedCost + (s.coachMorale < 40 ? 1500 : 0);
 
     if (s.cash + projectedTuition < projectedCost) {
       addNotification(s, '警告：预计下周资金将不足以支付房租！请尽快筹集资金！', 'error');

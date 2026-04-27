@@ -228,14 +228,14 @@ export const PROVINCES = [
 
 export const INITIAL_CASH = {
   TIER1: 600000,
-  PROVINCIAL: 400000,
-  REMOTE: 200000,
+  PROVINCIAL: 420000,
+  REMOTE: 240000,
 };
 
 export const WEEKLY_RENT = {
-  TIER1: 15000,
-  PROVINCIAL: 8000,
-  REMOTE: 3000,
+  TIER1: 13000,
+  PROVINCIAL: 7000,
+  REMOTE: 2500,
 };
 
 export const GAME_OVER_THRESHOLDS = {
@@ -256,11 +256,11 @@ export const SCORING_WEIGHTS = {
 
 export const COACH_UPGRADE_COSTS: Record<number, number> = {
   1: 10000,
-  2: 30000,
-  3: 60000,
-  4: 100000,
-  5: 200000,
-  6: 500000,
+  2: 25000,
+  3: 50000,
+  4: 90000,
+  5: 160000,
+  6: 350000,
 };
 
 export const FACILITY_CONFIG: Record<
@@ -268,30 +268,30 @@ export const FACILITY_CONFIG: Record<
   { label: string; maxStudents: number; rent: number; cost: number }
 > = {
   1: { label: '小型工作室', maxStudents: 20, rent: 0, cost: 0 },
-  2: { label: '标准培训教室', maxStudents: 50, rent: 5000, cost: 50000 },
-  3: { label: '专业写字楼', maxStudents: 100, rent: 15000, cost: 200000 },
-  4: { label: '独栋教学楼', maxStudents: 150, rent: 40000, cost: 1000000 },
+  2: { label: '标准培训教室', maxStudents: 50, rent: 4000, cost: 40000 },
+  3: { label: '专业写字楼', maxStudents: 100, rent: 12000, cost: 160000 },
+  4: { label: '独栋教学楼', maxStudents: 150, rent: 30000, cost: 800000 },
 };
 
 export const RECRUITMENT_CONFIG = {
   BEGINNER: {
     label: '普及组学生',
-    cost: 5000,
+    cost: 4000,
     req: { reputation: 0, coachLevel: 1 },
     abilityRange: { min: 5, max: 20 },
     talentRange: { min: 40, max: 70 },
   },
   INTERMEDIATE: {
     label: '提高组学生',
-    cost: 20000,
-    req: { reputation: 50, coachLevel: 2 },
+    cost: 18000,
+    req: { reputation: 45, coachLevel: 2 },
     abilityRange: { min: 25, max: 50 },
     talentRange: { min: 60, max: 90 },
   },
   ADVANCED: {
     label: '省队选手',
-    cost: 100000,
-    req: { reputation: 120, coachLevel: 4 },
+    cost: 80000,
+    req: { reputation: 110, coachLevel: 4 },
     abilityRange: { min: 60, max: 100 },
     talentRange: { min: 80, max: 100 },
   },
