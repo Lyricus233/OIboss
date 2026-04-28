@@ -3,6 +3,7 @@ import { Briefcase, DollarSign, Trophy, Calendar, MapPin, Save } from 'lucide-re
 import { GameState } from '../types';
 import { CALENDAR_EVENTS, PROVINCES } from '../constants';
 import { formatMoney } from '../../utils';
+import { isContestVisible } from '../hooks/useGameLogic';
 
 interface HeaderProps {
   gameState: GameState;
@@ -40,7 +41,11 @@ const Header: React.FC<HeaderProps> = ({ gameState, onOpenSaveLoad, onOpenInvest
 
         {(() => {
           const currentWeekEvent = CALENDAR_EVENTS[gameState.week];
-          if (currentWeekEvent && currentWeekEvent.type === 'CONTEST') {
+          if (
+            currentWeekEvent &&
+            currentWeekEvent.type === 'CONTEST' &&
+            isContestVisible(gameState, currentWeekEvent)
+          ) {
             return (
               <div className="ml-2 flex animate-pulse items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-bold text-amber-700">
                 <Calendar size={14} />
@@ -52,7 +57,11 @@ const Header: React.FC<HeaderProps> = ({ gameState, onOpenSaveLoad, onOpenInvest
           const nextEventWeek = Object.keys(CALENDAR_EVENTS)
             .map(Number)
             .sort((a, b) => a - b)
-            .find((w) => w > gameState.week);
+            .find((w) => {
+              if (w <= gameState.week) return false;
+              const ev = CALENDAR_EVENTS[w];
+              return isContestVisible(gameState, ev);
+            });
           if (nextEventWeek) {
             const event = CALENDAR_EVENTS[nextEventWeek];
             const weeksLeft = nextEventWeek - gameState.week;

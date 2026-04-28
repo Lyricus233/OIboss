@@ -272,6 +272,15 @@ interface ContestProfile {
   >;
 }
 
+export const isContestVisible = (s: GameState, event: CalendarEvent): boolean => {
+  if (event.type !== 'CONTEST') return true;
+  const profile = buildContestProfile(event);
+  if (['CTS', 'CTT', 'IOI'].includes(profile.mode as string)) {
+    return getEligibleStudents(s, profile).length > 0;
+  }
+  return true;
+};
+
 export const getEligibleStudents = (s: GameState, profile: ContestProfile) => {
   let eligibleStudents: Student[] = [];
   if (profile.mode === 'CSP2') {
@@ -424,6 +433,7 @@ export const buildContestProfile = (event: CalendarEvent): ContestProfile => {
     return {
       mode,
       hasAdvancement: false,
+      isHighLevel: true,
       problems:
         problems.length > 0
           ? problems
@@ -1719,6 +1729,10 @@ export const useGameLogic = () => {
     let eligibleStudents: Student[] = getEligibleStudents(s, profile);
     let bypassedStudentIds: string[] = [];
 
+    if (eligibleStudents.length === 0 && ['CTS', 'CTT', 'IOI'].includes(profile.mode as string)) {
+      return false;
+    }
+
     if (profile.mode === 'CSP2') {
       bypassedStudentIds = s.students.filter((st) => st.isRecommended).map((st) => st.id);
       // Clear the recommendations after reading them
@@ -1732,6 +1746,10 @@ export const useGameLogic = () => {
 
     if (profile.mode === 'NOI' && participants.length > 0) {
       s.participatedNOIThisSeason = true;
+    }
+
+    if (profile.mode === 'IOI' && participants.length > 0) {
+      s.hadIOIStudent = true;
     }
 
     if (participants.length === 0) {
@@ -1980,7 +1998,7 @@ export const useGameLogic = () => {
         return { first: 210, second: 165, third: 120 };
       }
       if (profile.mode === 'NOI') {
-        return { first: 410, second: 300, third: 180 };
+        return { first: 450, second: 350, third: 220 };
       }
       if (profile.mode === 'CTS' || profile.mode === 'CTT') {
         return { first: 430, second: 320, third: 220 };
@@ -2114,6 +2132,18 @@ export const useGameLogic = () => {
         const awardTag = `${profile.mode}_一等奖`;
         if (!student.passedContests.includes(awardTag)) {
           student.passedContests.push(awardTag);
+        }
+      }
+
+      // NOI 银/铜也算奖牌，记录到 passedContests 以便正确判定 hasNOIMedal
+      if (
+        profile.mode === 'NOI' &&
+        (row.award === '银牌' || row.award === '铜牌') &&
+        row.contestGroup !== 'BEGINNER'
+      ) {
+        const medalTag = `NOI_${row.award}`;
+        if (!student.passedContests.includes(medalTag)) {
+          student.passedContests.push(medalTag);
         }
       }
     });
@@ -2508,12 +2538,22 @@ export const useGameLogic = () => {
       s.year += 1;
       let hasNOIMedal = false;
       s.students.forEach((st) => {
+        const tags = st.passedContests || [];
         const keepsNOI =
-          st.passedContests?.includes('NOI') || st.passedContests?.includes('NOI_一等奖');
+          tags.includes('NOI') ||
+          tags.includes('NOI_一等奖') ||
+          tags.includes('NOI_金牌') ||
+          tags.includes('NOI_银牌') ||
+          tags.includes('NOI_铜牌');
         if (keepsNOI) hasNOIMedal = true;
-        const keepsAPIOQualifiers =
-          st.passedContests?.filter((tag) => tag.endsWith('_一等奖')) || [];
-        st.passedContests = [...keepsAPIOQualifiers];
+        const keepsCarryover = tags.filter(
+          (tag) =>
+            tag.endsWith('_一等奖') ||
+            tag === 'NOI_金牌' ||
+            tag === 'NOI_银牌' ||
+            tag === 'NOI_铜牌'
+        );
+        st.passedContests = [...keepsCarryover];
         if (keepsNOI) st.passedContests.push('NOI_LAST_YEAR');
         st.lastContestStatus = undefined;
         st.lastContestName = undefined;

@@ -151,7 +151,10 @@ const Dashboard: React.FC<DashboardProps> = ({
         if (isContestWeek) {
           const profile = buildContestProfile(currentWeekEvent);
           const eligible = getEligibleStudents(gameState, profile);
-          if (['NOI', 'CTT', 'CTS', 'IOI'].includes(profile.mode) && eligible.length === 0) {
+          if (['CTT', 'CTS', 'IOI'].includes(profile.mode) && eligible.length === 0) {
+            isContestWeek = false;
+            showEmptyContestWarning = false;
+          } else if (profile.mode === 'NOI' && eligible.length === 0) {
             isContestWeek = false;
             showEmptyContestWarning = true;
           }
