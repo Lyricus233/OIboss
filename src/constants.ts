@@ -2051,7 +2051,7 @@ export const ACHIEVEMENTS = [
     description: '跟家长交流的那个环节很成功',
     condition: (s: any) =>
       s.history.some(
-        (h: any) => h.message.includes('成功沟通加数值极多') || h.message.includes('小嘴抹了蜜')
+        (h: any) => h.message.includes('小嘴抹了蜜') || h.message.includes('谈判成功')
       ),
   },
   {
