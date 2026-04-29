@@ -2182,6 +2182,7 @@ export const useGameLogic = () => {
       isSuccess = false;
     }
 
+    const awardLabel = profile.isHighLevel ? '金/银/铜' : '一/二/三';
     const best = sortedResults[0];
     let detailsStr = '';
     if ((profile.mode === 'CSP1' || profile.mode === 'CSP2') && sortedResults.length > 0) {
@@ -2189,10 +2190,10 @@ export const useGameLogic = () => {
       const intCutoff = groupCutoffScores.INTERMEDIATE;
       const begAwards = groupAwardLines.BEGINNER;
       const intAwards = groupAwardLines.INTERMEDIATE;
-      detailsStr = `提高组线 ${intCutoff ?? '-'}，普及组线 ${begCutoff ?? '-'}，总过线 ${passedCount}/${sortedResults.length}。\n提高组奖线(一/二/三)：${intAwards ? `${intAwards.first}/${intAwards.second}/${intAwards.third}` : '-'}；\n普及组奖线(一/二/三)：${begAwards ? `${begAwards.first}/${begAwards.second}/${begAwards.third}` : '-'}`;
+      detailsStr = `提高组线 ${intCutoff ?? '-'}，普及组线 ${begCutoff ?? '-'}，总过线 ${passedCount}/${sortedResults.length}。\n提高组奖线(${awardLabel})：${intAwards ? `${intAwards.first}/${intAwards.second}/${intAwards.third}` : '-'}；\n普及组奖线(${awardLabel})：${begAwards ? `${begAwards.first}/${begAwards.second}/${begAwards.third}` : '-'}`;
     } else if (profile.mode === 'NOIP' && typeof groupCutoffScores.OPEN === 'number') {
       const openAwards = groupAwardLines.OPEN;
-      detailsStr = `NOIP 分数线 ${groupCutoffScores.OPEN}，过线 ${passedCount}/${sortedResults.length}。\n奖线(一/二/三)：${openAwards ? `${openAwards.first}/${openAwards.second}/${openAwards.third}` : '-'}`;
+      detailsStr = `NOIP 分数线 ${groupCutoffScores.OPEN}，过线 ${passedCount}/${sortedResults.length}。\n奖线(${awardLabel})：${openAwards ? `${openAwards.first}/${openAwards.second}/${openAwards.third}` : '-'}`;
     } else if (
       profile.mode === 'NOIWC' ||
       profile.mode === 'APIO' ||
@@ -2200,10 +2201,10 @@ export const useGameLogic = () => {
       profile.mode === 'CTT'
     ) {
       const openAwards = groupAwardLines.OPEN;
-      detailsStr = `奖线(一/二/三)：${openAwards ? `${openAwards.first}/${openAwards.second}/${openAwards.third}` : '-'}`;
+      detailsStr = `奖线(${awardLabel})：${openAwards ? `${openAwards.first}/${openAwards.second}/${openAwards.third}` : '-'}`;
     } else if (typeof groupCutoffScores.OPEN === 'number') {
       const openAwards = groupAwardLines.OPEN;
-      detailsStr = `分数线 ${groupCutoffScores.OPEN}，过线 ${passedCount}/${sortedResults.length}。\n奖线(一/二/三)：${openAwards ? `${openAwards.first}/${openAwards.second}/${openAwards.third}` : '-'}`;
+      detailsStr = `分数线 ${groupCutoffScores.OPEN}，过线 ${passedCount}/${sortedResults.length}。\n奖线(${awardLabel})：${openAwards ? `${openAwards.first}/${openAwards.second}/${openAwards.third}` : '-'}`;
     }
 
     const effectStr = formatEffects(effects);
